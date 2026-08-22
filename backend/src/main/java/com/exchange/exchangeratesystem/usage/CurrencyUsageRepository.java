@@ -53,4 +53,28 @@ public interface CurrencyUsageRepository extends JpaRepository<CurrencyUsage, St
     int incrementUsage(
             @Param("currencyCode") String currencyCode,
             @Param("queriedDate") LocalDate queriedDate);
+
+    /**
+     * Creates the row for a currency's first-ever lookup, with query_count = 1
+     * (this lookup itself) — not 0. Deliberately a native INSERT, like
+     * {@link #incrementUsage}, rather than {@code save(new CurrencyUsage(...))}:
+     * mixing an ORM-managed save with a native bulk query in the same
+     * transaction risks the Hibernate session's first-level cache holding a
+     * stale in-memory view of a row a native query changed underneath it.
+     * Keeping both write paths pure-native/JDBC, with no entity ever attached
+     * to a persistence context, sidesteps that entirely. Throws
+     * {@code DataIntegrityViolationException} on the currency_code primary key
+     * if another thread's insert of the same brand-new currency wins the race —
+     * the caller (UsageTrackingService) retries as an {@link #incrementUsage}
+     * call when that happens.
+     */
+    @Modifying
+    @Transactional
+    @Query(value = """
+            INSERT INTO currency_usage (currency_code, query_count, last_queried_date)
+            VALUES (:currencyCode, 1, :queriedDate)
+            """, nativeQuery = true)
+    void insertNewRow(
+            @Param("currencyCode") String currencyCode,
+            @Param("queriedDate") LocalDate queriedDate);
 }
