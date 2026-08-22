@@ -80,4 +80,40 @@ class RateIngestionServiceTest {
 
         assertThat(exchangeRateRepository.count()).isZero();
     }
+
+    /**
+     * T019: distinct from {@link #fixerClientFailureWritesNoData()} above — that
+     * test starts from an empty table and only proves no *new* rows appear.
+     * This one proves the stronger NFR-004 claim: data that already existed
+     * *before* a failed fetch is left completely unchanged — not just "still
+     * present with the same value" but byte-for-byte identical, including its
+     * audit timestamps, which would move if the row had been touched at all.
+     */
+    @Test
+    void fixerClientFailureLeavesPreviouslyStoredRowsUnchanged() {
+        LocalDate existingDate = LocalDate.of(2026, 3, 1);
+        exchangeRateRepository.upsert("EUR", new BigDecimal("0.80"), existingDate);
+        ExchangeRate before = exchangeRateRepository
+                .findByCurrencyCodeAndRateDate("EUR", existingDate)
+                .orElseThrow();
+
+        when(fixerClient.fetchLatestRates())
+                .thenThrow(new FixerClientException("Fixer.io /latest was unreachable"));
+
+        // Instruction #4/#5: the exception must propagate out of
+        // ingestLatestRates() (never silently swallowed), and asserting that
+        // via assertThatThrownBy — rather than letting it escape the test
+        // method itself — is what keeps this test from failing on an
+        // uncaught exception instead of on a failed assertion.
+        assertThatThrownBy(() -> rateIngestionService.ingestLatestRates())
+                .isInstanceOf(FixerClientException.class);
+
+        assertThat(exchangeRateRepository.count()).isEqualTo(1);
+        ExchangeRate after = exchangeRateRepository
+                .findByCurrencyCodeAndRateDate("EUR", existingDate)
+                .orElseThrow();
+        assertThat(after.getRateToUsd()).isEqualByComparingTo(before.getRateToUsd());
+        assertThat(after.getCreatedAt()).isEqualTo(before.getCreatedAt());
+        assertThat(after.getUpdatedAt()).isEqualTo(before.getUpdatedAt());
+    }
 }
