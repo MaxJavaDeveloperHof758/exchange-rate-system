@@ -31,18 +31,18 @@ for traceability — but the top-level grouping and checkpoints are the five sta
 
 ## Phase 0: Setup (Shared Infrastructure)
 
-- [ ] T001 Confirm `pom.xml` build succeeds (`mvn -q compile`) and
+- [X] T001 Confirm `pom.xml` build succeeds (`mvn -q compile`) and
       `src/main/java/com/exchange/exchangeratesystem/ExchangeRateSystemApplication.java` exists
       with a standard `@SpringBootApplication` entry point.
-- [ ] T002 [P] Add `src/main/resources/application.yml` with: server port, a relational-database
+- [X] T002 [P] Add `src/main/resources/application.yml` with: server port, a relational-database
       datasource (per constitution's fixed Technology Stack — any relational DB, local/dev/test
       config only), a `fixer.api-key` / `fixer.base-url` property pair read from an environment
       variable (no hardcoded key), and a `spring.ai.ollama.chat.options.model` property per
       research.md Decision 2.
-- [ ] T003 [P] Create `src/main/java/com/exchange/exchangeratesystem/config/OpenApiConfig.java`
+- [X] T003 [P] Create `src/main/java/com/exchange/exchangeratesystem/config/OpenApiConfig.java`
       with an `OpenAPI` bean setting title/description/version so Swagger UI has a meaningful
       landing page (constitution Principle VI; contracts/ endpoints will register under it).
-- [ ] T004 [P] Confirm `frontend/` scaffold builds (`npm install && ng build`) and strip any
+- [X] T004 [P] Confirm `frontend/` scaffold builds (`npm install && ng build`) and strip any
       unused server-side-rendering scaffolding per research.md Decision 4 (`server.ts`,
       `main.server.ts`, `app.config.server.ts`, `app.routes.server.ts`, related
       `package.json`/`angular.json` entries) if present.
@@ -63,43 +63,43 @@ constraint from data-model.md is actually enforced by the database — not just 
 
 ### Files to create
 
-- [ ] T005 [US1] [US2] Create JPA entity `ExchangeRate` in
+- [X] T005 [US1] [US2] Create JPA entity `ExchangeRate` in
       `src/main/java/com/exchange/exchangeratesystem/rate/ExchangeRate.java` per data-model.md:
       fields `id` (`Long`, surrogate PK), `currencyCode` (`String`, length 3),
       `rateToUsd` (`BigDecimal`, column definition `DECIMAL(19,10)`), `rateDate` (`LocalDate`),
       `createdAt`/`updatedAt` (`Instant`); table-level unique constraint on
       `(currency_code, rate_date)`.
-- [ ] T006 [P] [US1] [US3] Create JPA entity `CurrencyUsage` in
+- [X] T006 [P] [US1] [US3] Create JPA entity `CurrencyUsage` in
       `src/main/java/com/exchange/exchangeratesystem/usage/CurrencyUsage.java` per data-model.md:
       `currencyCode` (`String`, `@Id`), `queryCount` (`Long`, default 0), `lastQueriedDate`
       (`LocalDate`).
-- [ ] T007 [P] [US1] Create `src/main/java/com/exchange/exchangeratesystem/currency/CurrencySpread.java`
+- [X] T007 [P] [US1] Create `src/main/java/com/exchange/exchangeratesystem/currency/CurrencySpread.java`
       encoding the fixed Appendix B lookup table as `BigDecimal` percentages: base currency
       0.00%, `JPY`/`HKD`/`KRW` 3.25%, `MYR`/`INR`/`MXN` 4.50%, `RUB`/`CNY`/`ZAR` 6.00%, all other
       currencies 2.75%. Expose `BigDecimal spreadFor(String currencyCode)`.
-- [ ] T008 [P] [US1] Create `src/main/java/com/exchange/exchangeratesystem/currency/CurrencyCode.java`
+- [X] T008 [P] [US1] Create `src/main/java/com/exchange/exchangeratesystem/currency/CurrencyCode.java`
       exposing `boolean isSupported(String code)` for the fixed set of ISO 4217 codes this system
       recognizes (used later by controllers to reject unknown codes with `400`).
-- [ ] T009 [US1] [US2] Create `ExchangeRateRepository` in
+- [X] T009 [US1] [US2] Create `ExchangeRateRepository` in
       `src/main/java/com/exchange/exchangeratesystem/rate/ExchangeRateRepository.java` extending
       `JpaRepository<ExchangeRate, Long>` with named query methods:
       `Optional<ExchangeRate> findByCurrencyCodeAndRateDate(String currencyCode, LocalDate rateDate)`,
       `Optional<ExchangeRate> findTopByCurrencyCodeOrderByRateDateDesc(String currencyCode)`,
       `List<ExchangeRate> findByCurrencyCodeAndRateDateBetweenOrderByRateDateAsc(String currencyCode, LocalDate start, LocalDate end)`.
       *(depends on T005)*
-- [ ] T010 [US2] Add a `@Modifying @Query` native upsert method to `ExchangeRateRepository`
+- [X] T010 [US2] Add a `@Modifying @Query` native upsert method to `ExchangeRateRepository`
       (research.md Decision 3) — `void upsert(String currencyCode, BigDecimal rateToUsd, LocalDate rateDate)`
       implemented as a single `MERGE`/`ON CONFLICT DO UPDATE` statement keyed on
       `(currency_code, rate_date)`, updating `rate_to_usd` and `updated_at` on conflict.
       *(depends on T005, T009)*
-- [ ] T011 [P] [US1] [US3] Create `CurrencyUsageRepository` in
+- [X] T011 [P] [US1] [US3] Create `CurrencyUsageRepository` in
       `src/main/java/com/exchange/exchangeratesystem/usage/CurrencyUsageRepository.java` with a
       single `@Modifying @Query` atomic upsert-and-increment method (research.md Decision 5) —
       `void incrementUsage(String currencyCode, LocalDate queriedDate)` implemented as
       `INSERT ... ON CONFLICT (currency_code) DO UPDATE SET query_count = query_count + 1, last_queried_date = ?`
       — plus a derived `List<CurrencyUsage> findAllByOrderByQueryCountDesc()` for the analytics
       read path. *(depends on T006)*
-- [ ] T012 [P] [US1] Unit/repository test in
+- [X] T012 [P] [US1] Unit/repository test in
       `src/test/java/com/exchange/exchangeratesystem/rate/ExchangeRateRepositoryTest.java`
       confirming the `(currency_code, rate_date)` unique constraint from data-model.md is
       enforced by the schema (attempt a duplicate direct insert outside T010's upsert path and
@@ -123,32 +123,32 @@ manual-refresh trigger, called twice) against the same day results in exactly on
 
 ### Files to create
 
-- [ ] T013 [US2] Create `src/main/java/com/exchange/exchangeratesystem/config/WebClientConfig.java`
+- [X] T013 [US2] Create `src/main/java/com/exchange/exchangeratesystem/config/WebClientConfig.java`
       exposing a `WebClient` (or equivalent HTTP client) bean pre-configured with the Fixer.io
       base URL and API key from `application.yml` (T002).
-- [ ] T014 [P] [US2] Create `src/main/java/com/exchange/exchangeratesystem/config/SchedulingConfig.java`
+- [X] T014 [P] [US2] Create `src/main/java/com/exchange/exchangeratesystem/config/SchedulingConfig.java`
       with `@EnableScheduling`.
-- [ ] T015 [US2] Create `FixerClient` in
+- [X] T015 [US2] Create `FixerClient` in
       `src/main/java/com/exchange/exchangeratesystem/rate/FixerClient.java` calling Fixer.io's
       `/latest` endpoint via the T013 client — `FixerRatesResult fetchLatestRates()` mapping the
       response's `date` field and `rates` map into a plain result object; the returned date MUST
       come from the API response body, never `LocalDate.now()` (data-model.md, FR-002).
-- [ ] T016 [US2] Create `RateIngestionService` in
+- [X] T016 [US2] Create `RateIngestionService` in
       `src/main/java/com/exchange/exchangeratesystem/rate/RateIngestionService.java` —
       `void ingestLatestRates()` calling `FixerClient`, then calling T010's native upsert once per
       returned currency inside a single transaction; on a `FixerClient` failure, the method MUST
       leave all existing `ExchangeRate` rows untouched and propagate/log the failure rather than
       partially writing (NFR-004). *(depends on T010, T015)*
-- [ ] T017 [US2] Create `RateIngestionScheduler` in
+- [X] T017 [US2] Create `RateIngestionScheduler` in
       `src/main/java/com/exchange/exchangeratesystem/rate/RateIngestionScheduler.java` with
       `@Scheduled(cron = "0 5 0 * * *", zone = "GMT")` calling `RateIngestionService#ingestLatestRates`
       (brief Section 4.1: 12:05 AM GMT daily). *(depends on T016, T014)*
-- [ ] T018 [P] [US2] Unit test in
+- [X] T018 [P] [US2] Unit test in
       `src/test/java/com/exchange/exchangeratesystem/rate/RateIngestionServiceTest.java` — mock
       `FixerClient` to return the same currency/date pair twice across two calls to
       `ingestLatestRates()`, and assert `ExchangeRateRepository` holds exactly one row for that
       pair afterward (validates FR-003/FR-004/NFR-003/SC-004). *(depends on T016)*
-- [ ] T019 [P] [US2] Unit test in
+- [X] T019 [P] [US2] Unit test in
       `src/test/java/com/exchange/exchangeratesystem/rate/RateIngestionServiceTest.java` (same
       file, additional test method) — mock `FixerClient` to throw, call `ingestLatestRates()`,
       and assert previously-stored `ExchangeRate` rows are unchanged and no exception escapes
@@ -173,40 +173,40 @@ contracts/exchange.md — all independently curl-able with no frontend involved.
 
 ### Files to create
 
-- [ ] T020 [US1] Create `src/main/java/com/exchange/exchangeratesystem/error/ApiException.java`
+- [X] T020 [US1] Create `src/main/java/com/exchange/exchangeratesystem/error/ApiException.java`
       (base) and concrete subclasses `UnknownCurrencyException`, `RateNotAvailableException`,
       `UpstreamFetchException` in the same `error/` package.
-- [ ] T021 [US1] Create `GlobalExceptionHandler` (`@RestControllerAdvice`) in
+- [X] T021 [US1] Create `GlobalExceptionHandler` (`@RestControllerAdvice`) in
       `src/main/java/com/exchange/exchangeratesystem/error/GlobalExceptionHandler.java` mapping:
       `UnknownCurrencyException` → `400`, `RateNotAvailableException` → `404`,
       `UpstreamFetchException` → `502`, matching the error bodies in contracts/exchange.md.
       *(depends on T020)*
-- [ ] T022 [US1] Create `SpreadCalculationService` in
+- [X] T022 [US1] Create `SpreadCalculationService` in
       `src/main/java/com/exchange/exchangeratesystem/rate/SpreadCalculationService.java` —
       `BigDecimal calculate(BigDecimal toRateToUsd, BigDecimal fromRateToUsd, BigDecimal toSpread, BigDecimal fromSpread)`
       implementing exactly `(toRate/fromRate) × ((100 − MAX(toSpread, fromSpread))/100)` using
       `BigDecimal.divide(divisor, scale, RoundingMode.HALF_UP)` at every division (constitution
       Principle I/II). *(depends on T007)*
-- [ ] T023 [P] [US1] Unit test in
+- [X] T023 [P] [US1] Unit test in
       `src/test/java/com/exchange/exchangeratesystem/rate/SpreadCalculationServiceTest.java`
       covering every Appendix B tier (base/JPY-group/MYR-group/RUB-group/other), the pinned
       EUR/PLN worked example (expect exactly 4.44), the same-currency edge case (rate 1, spread
       0), and a tie case where both spreads are equal. *(depends on T022)*
-- [ ] T024 [US1] [US3] Create `UsageTrackingService` in
+- [X] T024 [US1] [US3] Create `UsageTrackingService` in
       `src/main/java/com/exchange/exchangeratesystem/usage/UsageTrackingService.java` —
       `void recordLookup(String fromCurrency, String toCurrency, LocalDate queriedDate)` calling
       T011's atomic increment once per currency (twice total, or once if `fromCurrency` equals
       `toCurrency`). *(depends on T011)*
-- [ ] T025 [P] [US1] [US3] Concurrency test in
+- [X] T025 [P] [US1] [US3] Concurrency test in
       `src/test/java/com/exchange/exchangeratesystem/usage/UsageTrackingServiceTest.java` firing
       at least 50 concurrent calls to `recordLookup` for the same currency (e.g. via an
       `ExecutorService` + `CountDownLatch`) and asserting the final `queryCount` equals exactly 50
       (validates NFR-002/SC-003). *(depends on T024)*
-- [ ] T026 [US1] [US2] Create DTOs in `src/main/java/com/exchange/exchangeratesystem/rate/dto/`:
+- [X] T026 [US1] [US2] Create DTOs in `src/main/java/com/exchange/exchangeratesystem/rate/dto/`:
       `ExchangeRateResponse` (`from`, `to`, `exchange`, `date`, `fromQueryCount`, `toQueryCount`
       per contracts/exchange.md) and `HistoricalRatePoint` (`date`, `exchange`) plus a
       `HistoryResponse` wrapper (`from`, `to`, `startDate`, `endDate`, `points`, `missingDates`).
-- [ ] T027 [US1] [US2] Create `ExchangeRateController` in
+- [X] T027 [US1] [US2] Create `ExchangeRateController` in
       `src/main/java/com/exchange/exchangeratesystem/web/ExchangeRateController.java` with:
       `GET /api/exchange` (`getExchangeRate`) — validates `from`/`to` via `CurrencyCode`, resolves
       the rate date (given, or most-recent via T009's `findTopByCurrencyCodeOrderByRateDateDesc`),
@@ -214,7 +214,7 @@ contracts/exchange.md — all independently curl-able with no frontend involved.
       `ExchangeRateResponse`; and `GET /api/exchange/history` (`getHistory`) — range query via
       T009, computing `missingDates` against the requested range per contracts/exchange.md.
       *(depends on T022, T024, T026, T009, T021)*
-- [ ] T028 [US2] Add `POST /api/exchange/refresh` (`refresh`) to `ExchangeRateController` (or a
+- [X] T028 [US2] Add `POST /api/exchange/refresh` (`refresh`) to `ExchangeRateController` (or a
       dedicated `AdminController` in the same `web` package) — synchronously calls
       `RateIngestionService#ingestLatestRates`, returns `202` with a timestamp per
       contracts/exchange.md, maps a `FixerClient` failure to `502` via `UpstreamFetchException`,
