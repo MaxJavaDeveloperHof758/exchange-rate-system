@@ -19,6 +19,14 @@
     <properties>
         <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!--
+            Spring AI has no version relationship to spring-boot-starter-parent's
+            dependency management (it's not one of the BOMs the parent imports), so
+            it must be pinned explicitly. 2.0.1 is the line built against Spring Boot
+            4.1.x (its own POM declares spring-boot-starter-webclient/restclient at
+            4.1.1) — matching this project's Boot 4.1.0 parent; 1.x targets Boot 3.x.
+        -->
+        <spring-ai.version>2.0.1</spring-ai.version>
     </properties>
 
     <dependencies>
@@ -61,6 +69,18 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webflux</artifactId>
+        </dependency>
+        <!--
+            T033: Spring AI's Ollama chat-model starter (plan.md's fixed AI stack —
+            Spring AI against a local Ollama model, research.md Decision 2). Brings
+            its own auto-configuration that registers OllamaChatModel/ChatClient
+            beans from the spring.ai.ollama.* properties below, with no application
+            code required to wire them up.
+        -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-ollama</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
