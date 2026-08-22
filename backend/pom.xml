@@ -40,6 +40,19 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.7.0</version>
         </dependency>
+        <!--
+            WebClient itself lives in spring-webflux, per plan.md's explicit choice
+            ("an HTTP client for the outbound Fixer.io call ... the app is not
+            reactive end-to-end"). No reactive server stack (Netty/reactor-netty) is
+            pulled in — WebClientConfig backs the client with JdkClientHttpConnector
+            (in spring-web, already on the classpath via spring-boot-starter-web),
+            so this app stays a plain Spring MVC servlet application; WebClient is
+            used purely as a client, blocking synchronously on the one Fixer.io call.
+        -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webflux</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
