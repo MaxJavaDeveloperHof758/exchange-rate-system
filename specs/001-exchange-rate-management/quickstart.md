@@ -20,8 +20,14 @@ belongs in `tasks.md` and the actual code, not here.
 
 ```bash
 export FIXER_API_KEY=your-fixer-io-key
+export SPRING_PROFILES_ACTIVE=dev
 mvn spring-boot:run
 ```
+
+The `dev` profile does two things (T031): enables schema auto-creation for the local file-based
+H2 database (`spring.jpa.hibernate.ddl-auto=update`, `application-dev.yml`) and activates
+`DevDataSeeder`, a `CommandLineRunner` that idempotently inserts the EUR/PLN worked-example rates
+below on every startup — safe to restart repeatedly, never duplicates rows.
 
 Expected: the application starts on its configured port with no startup errors, and
 `/swagger-ui.html` (or the configured springdoc path) is reachable and lists every endpoint in
@@ -31,13 +37,19 @@ Expected: the application starts on its configured port with no startup errors, 
 
 The scheduled job only fires once daily at 12:05 AM GMT (FR-001), so a fresh local run has no
 data yet unless one of the following is true:
-- A dev-only data seeder pre-populates the worked example (EUR/PLN, per brief Section 6.2) so the
+- `DevDataSeeder` (T031, active via the `dev` profile from Step 1) pre-populates today's date
+  with the brief's EUR/PLN worked-example rates (Section 6.2: `0.80`/`3.70` rate-to-USD) so the
   system is immediately demoable, **or**
 - The optional manual-refresh endpoint (`POST /api/exchange/refresh`, [contracts/exchange.md]
   (contracts/exchange.md)) is called once to pull real data from Fixer.io on demand.
 
-Expected: `GET /api/exchange?from=EUR&to=PLN` returns `200 OK` with `exchange: 4.44` against the
-worked-example data (or real Fixer.io data if refresh was used), matching SC-001.
+Expected: `GET /api/exchange?from=EUR&to=PLN` returns `200 OK` with `exchange: 4.49781250000000000000`
+against the worked-example data (or real Fixer.io data if refresh was used instead), matching
+SC-001. This is *not* the brief's own illustrative `4.44` — that figure uses the brief's
+illustrative 1%/4% spreads to demonstrate the formula (Section 6.2), not PLN's actual Appendix B
+tier, which `CurrencySpread` (T007) correctly assigns to the 2.75% "all other currencies" default
+rather than EUR's 0% base tier: `(3.70/0.80) × ((100−2.75)/100) = 4.625 × 0.9725 = 4.4978125`
+(displayed at the formula's full 20-digit `BigDecimal` scale).
 
 ## Step 3 — Validate the missing-data and invalid-input error paths
 

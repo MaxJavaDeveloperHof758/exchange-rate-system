@@ -447,8 +447,9 @@ the running backend.
 3. Complete enough of Stage 3 (T020–T027, T030, T031) to make `GET /api/exchange` fully correct
    and tested — this alone satisfies User Story 1 end-to-end via `curl`/Swagger UI, without
    Stage 2's live ingestion (the T031 dev seeder stands in for real Fixer.io data).
-4. **STOP and VALIDATE**: confirm the EUR/PLN worked example returns 4.44 and a missing date
-   returns 404.
+4. **STOP and VALIDATE**: confirm the EUR/PLN dev-seeded data returns `4.49781250000000000000`
+   (per Appendix B's real 2.75% PLN tier — see quickstart.md Step 2 for why this isn't the
+   brief's illustrative `4.44`) and a missing date returns 404.
 
 ### Incremental Delivery (recommended order)
 
