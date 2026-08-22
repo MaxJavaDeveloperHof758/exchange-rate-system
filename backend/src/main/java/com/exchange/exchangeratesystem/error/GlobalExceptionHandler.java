@@ -48,6 +48,11 @@ public class GlobalExceptionHandler {
         return errorResponse(HttpStatus.BAD_GATEWAY, e.getErrorCode(), e.getMessage());
     }
 
+    @ExceptionHandler(InvalidDateRangeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidDateRange(InvalidDateRangeException e) {
+        return errorResponse(HttpStatus.BAD_REQUEST, e.getErrorCode(), e.getMessage());
+    }
+
     /**
      * A query parameter failed type conversion — most notably a malformed
      * {@code date}/{@code startDate}/{@code endDate}/{@code fromDate}/
