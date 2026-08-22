@@ -79,6 +79,17 @@
             <artifactId>spring-boot-data-jpa-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!--
+            Same Spring Boot 4.x relocation as spring-boot-data-jpa-test above:
+            @AutoConfigureMockMvc moved to this dedicated module (new package
+            org.springframework.boot.webmvc.test.autoconfigure), not transitively
+            pulled in by spring-boot-starter-test.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -86,6 +97,28 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <!--
+                *IT.java classes (e.g. ExchangeRateControllerIT, T030) are
+                integration tests by Maven's own naming convention, but
+                Surefire's default includes (**/*Test.java, **/*Tests.java)
+                never match that suffix, so they would silently never run
+                under plain `mvn test`. Failsafe is the standard counterpart
+                that does match **/*IT.java, bound to integration-test/verify
+                so `mvn verify` runs unit tests (Surefire) and integration
+                tests (Failsafe) together; `mvn test` stays fast/unit-only.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
