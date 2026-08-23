@@ -4,7 +4,7 @@ Guidance for Claude Code (and any other AI coding assistant) working in this rep
 
 ## What this project is
 
-**Exchange Rate Management System** — a Marcura Full Stack Developer technical assessment.
+**Exchange Rate Management System** — a Full Stack Developer technical assessment for a client.
 Backend (Java/Spring Boot) ingests daily FX rates from Fixer.io, serves a spread-adjusted rate
 calculator API, tracks per-currency usage analytics, and exposes an AI-generated trend insight
 (Spring AI + a local LLM). An Angular frontend will consume that API through three views:
@@ -24,27 +24,33 @@ documentation) — **read those before writing code**:
 | [`specs/001-exchange-rate-management/quickstart.md`](specs/001-exchange-rate-management/quickstart.md) | Step-by-step local run/validation guide. |
 | [`specs/001-exchange-rate-management/tasks.md`](specs/001-exchange-rate-management/tasks.md) | The 5-stage implementation task breakdown — the actual work order (see below). |
 | [`specs/001-exchange-rate-management/checklists/requirements.md`](specs/001-exchange-rate-management/checklists/requirements.md) | Spec quality checklist (already passing). |
+| [`specs/001-exchange-rate-management/implementation-log.md`](specs/001-exchange-rate-management/implementation-log.md) | Running log of what's been built, non-obvious bugs found/fixed, and design decisions confirmed with the user — read this before `tasks.md`'s checkboxes if you need *why*, not just *what*. |
+| [`specs/001-exchange-rate-management/validation-checklist.md`](specs/001-exchange-rate-management/validation-checklist.md) | Manual end-to-end validation checklist (T054) with concrete commands/expected output per step. |
 
-## Current repository state (important — read before assuming anything is built)
+## Current repository state (read `tasks.md`'s checkboxes for the live status — this section is a snapshot, not a substitute)
 
-This repository is currently a **bare skeleton**:
+All five implementation stages (`tasks.md`) are complete and committed, plus the Polish phase's
+documentation tasks (T054/T055). Only T056–T058 (this file's own audit, the `[AI]`-prefix
+convention check, and a final `double`/`float` sweep) remain, and are process/verification tasks
+with no large code surface of their own. Concretely, as of this snapshot:
 
-- `pom.xml` is a plain Maven POM (`groupId: com.exchange`, `artifactId: exchange-rate-system`,
-  Java 25 compiler settings) with **no Spring Boot parent and no dependencies declared yet**.
-- `src/main/java/` and `src/test/java/` exist but contain **no packages or classes yet**.
-- There is **no `frontend/` directory yet** — the Angular app has not been scaffolded here.
-- There is **no `.git` repository initialized yet** in this directory.
+- Backend: Spring Boot app under `backend/` (own `pom.xml`), package
+  `com.exchange.exchangeratesystem` — **the package/groupId mismatch flagged in earlier drafts of
+  this file is resolved**: the docs and the code both use `com.exchange.exchangeratesystem` /
+  Maven `com.exchange:exchange-rate-system`. All five backend/frontend stages' endpoints,
+  services, repositories, and tests exist under `backend/src/main/java/...` and
+  `backend/src/test/java/...`.
+- Frontend: Angular SPA under `frontend/` (own `package.json`), all three required views
+  (`/calculator`, `/trend`, `/analytics`) implemented and wired to the real backend.
+- `README.md` at the repository root is written (setup/run, architecture, AI Workflow,
+  assumptions, trade-offs) — no longer a placeholder.
+- Git history exists, every AI-assisted commit prefixed `[AI]` (a few early commits predate strict
+  adherence to this — see `git log`).
 
-⚠️ **Known mismatch to resolve before/while starting Stage 1**: the copied planning docs
-(`plan.md`, `data-model.md`, `tasks.md`) all assume the Java package
-`com.marcura.exchangeratesystem`, but this project's actual Maven coordinates are
-`com.exchange` / `exchange-rate-system`. Decide (with the user) whether to rename the package
-in the docs to `com.exchange.exchangeratesystem` (or similar) or update `pom.xml`'s `groupId` to
-`com.marcura` for consistency — do this once, explicitly, before generating any code, rather than
-letting the two drift.
-
-Do not assume any backend logic, entities, or endpoints already exist — `tasks.md`'s five stages
-are all still `[ ]` unchecked. Treat `tasks.md` as the literal, ordered to-do list.
+Do not re-scaffold, re-plan, or re-implement anything already `[X]` in `tasks.md` — check there
+first. If a task still references a stale path/package assumption from an early planning draft,
+that's a documentation lag in `tasks.md`'s own task-description prose, not a real conflict — the
+actual `com.exchange.exchangeratesystem` package is authoritative.
 
 ## Fixed technology stack (non-negotiable — see constitution's Technology Stack section)
 
@@ -109,11 +115,13 @@ task) are actually done — each stage's "Independent Test" is how you confirm i
 
 ## Working conventions
 
-- This is documentation-only territory until the user explicitly asks for implementation — don't
-  start writing backend/frontend code from a documentation request alone.
-- If a task in `tasks.md` references a class/method/path that conflicts with the actual
-  `pom.xml`/package structure (see the mismatch flagged above), resolve the conflict explicitly
-  with the user before generating code from it, rather than guessing.
-- No README.md exists yet at the repository root; the brief (Section 9) requires one covering
-  setup, architecture, an "AI Workflow" section, assumptions, and trade-offs — this is separate
-  from this `CLAUDE.md` and should be created when implementation is underway, not before.
+- Implementation is done; remaining work is Polish-phase verification (T054–T058) and whatever
+  the user asks for next (bug fixes, additional polish, submission prep). Don't re-scaffold or
+  re-plan already-`[X]` work from a general request alone — confirm against `tasks.md` first.
+- If a task in `tasks.md` references a class/method/path that conflicts with the actual code,
+  resolve the conflict explicitly with the user before changing anything from it, rather than
+  guessing.
+- `README.md` exists at the repository root and covers setup, architecture, an "AI Workflow"
+  section, assumptions, and trade-offs (brief Section 9) — keep it in sync with any further
+  functional change; don't let it drift stale the way this file's own "Current repository state"
+  section once did.

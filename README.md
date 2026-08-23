@@ -1,8 +1,8 @@
 # Exchange Rate Management System
 
 A spread-adjusted currency exchange calculator with a historical trend chart, an AI-generated
-trend commentary, and a usage-analytics dashboard. Built as a Marcura Full Stack Developer
-technical assessment — the full requirements live in
+trend commentary, and a usage-analytics dashboard. Built as a Full Stack Developer technical
+assessment for a client — the full requirements live in
 [`specs/001-exchange-rate-management/spec.md`](specs/001-exchange-rate-management/spec.md) and
 [`.specify/memory/constitution.md`](.specify/memory/constitution.md).
 

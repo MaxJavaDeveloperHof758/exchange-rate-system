@@ -141,8 +141,9 @@ where it used to.
 ## Cross-Cutting Facts Worth Remembering
 
 - **Package/groupId**: `com.exchange.exchangeratesystem` / Maven `com.exchange:exchange-rate-system`
-  — the copied planning docs originally said `com.marcura...`; this was corrected during the
-  Russian-text/Marcura-removal pass before implementation started.
+  — the copied planning docs originally said `com.client...` (the client's actual name, since
+  redacted throughout this repo's docs); this was corrected during the Russian-text/client-name-
+  removal pass before implementation started.
 - **Datasource**: H2, file-based for dev (`jdbc:h2:file:./data/exchangedb`), always overridden to
   an isolated in-memory instance in tests via `@SpringBootTest(properties = {...})`.
 - **Verification pattern used throughout**: for anything with real runtime behavior (schema

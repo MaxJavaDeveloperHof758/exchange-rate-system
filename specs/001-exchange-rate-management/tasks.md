@@ -377,20 +377,20 @@ the running backend.
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T054 [P] Execute the full [quickstart.md](quickstart.md) validation manually end-to-end
+- [X] T054 [P] Execute the full [quickstart.md](quickstart.md) validation manually end-to-end
       (backend start, seed/refresh, all three views via `ng serve`, the 50-request concurrency
       spot-check) and record/fix any discrepancy found.
-- [ ] T055 [P] Write the root `README.md`: local setup/run instructions (including the local AI
+- [X] T055 [P] Write the root `README.md`: local setup/run instructions (including the local AI
       model pull and the Fixer.io API key environment variable), an architecture overview, an
       **"AI Workflow"** section naming the tool(s) used, how they were configured, and at least
       one concrete example where AI-generated output was overridden or corrected and why (brief
       Section 8.2, item 3 — mandatory grading evidence).
-- [ ] T056 [P] Confirm the `.claude/` (or equivalent) AI tool configuration committed to the
+- [X] T056 [P] Confirm the `.claude/` (or equivalent) AI tool configuration committed to the
       repository is substantive, not a placeholder — satisfying brief Section 8.2, item 2.
-- [ ] T057 Going forward, prefix commits that are primarily AI-generated/AI-assisted with `[AI]`
+- [X] T057 Going forward, prefix commits that are primarily AI-generated/AI-assisted with `[AI]`
       (constitution's AI-Augmented Workflow Requirements; brief Section 8.2, item 4) — a process
       convention, no file change of its own.
-- [ ] T058 [P] Final review pass across `SpreadCalculationService`, `ExchangeRate`, and every DTO
+- [X] T058 [P] Final review pass across `SpreadCalculationService`, `ExchangeRate`, and every DTO
       in the rate/insight path confirming no `double`/`float` appears anywhere in the money
       calculation or persistence path (constitution Principle I).
 
