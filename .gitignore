@@ -42,4 +42,5 @@ build/
 .idea/
 node_modules/
 *.log
-backend/target/
+backend/target/backend/data/
+backend/data/
