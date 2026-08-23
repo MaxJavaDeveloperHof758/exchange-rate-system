@@ -15,6 +15,19 @@ spring:
       chat:
         options:
           model: ${OLLAMA_MODEL:llama3.2}
+    # Spring AI's own default (10 attempts, 2s initial backoff, x5 multiplier,
+    # capped at 180s) can take several minutes to finally give up on a genuine
+    # outage (verified empirically against an unreachable Ollama during T035) —
+    # nowhere near the "clear, distinct error state" contracts/insight.md and
+    # constitution Principle X call for on a synchronous request/response
+    # endpoint. One short retry is enough to ride out a truly transient blip
+    # without making a real outage look like a hang.
+    retry:
+      max-attempts: 2
+      backoff:
+        initial-interval: 1s
+        multiplier: 2
+        max-interval: 2s
 
 fixer:
   api-key: ${FIXER_API_KEY}
