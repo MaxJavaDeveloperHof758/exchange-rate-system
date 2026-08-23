@@ -1,0 +1,49 @@
+<h2>Usage Analytics Dashboard</h2>
+
+@if (loading()) {
+  <p class="status loading" role="status">Loading…</p>
+}
+
+@if (errorMessage()) {
+  <p class="status error" role="alert">{{ errorMessage() }}</p>
+}
+
+@if (!loading() && !errorMessage()) {
+  @if (entries().length === 0) {
+    <p class="status empty" role="status">No currencies have been queried yet.</p>
+  } @else {
+    <svg
+      [attr.viewBox]="'0 0 ' + width + ' ' + geometry().height"
+      [attr.width]="width"
+      [attr.height]="geometry().height"
+      role="img"
+      [attr.aria-label]="'Usage ranking across ' + entries().length + ' currencies'"
+      class="usage-chart"
+    >
+      @for (bar of geometry().bars; track bar.currency) {
+        <text
+          [attr.x]="geometry().labelX"
+          [attr.y]="bar.barY + geometry().barHeight / 2"
+          dominant-baseline="middle"
+          class="bar-label"
+        >{{ bar.currency }}</text>
+
+        <rect
+          [attr.x]="bar.barX"
+          [attr.y]="bar.barY"
+          [attr.width]="bar.barWidth"
+          [attr.height]="geometry().barHeight"
+          class="bar"
+        />
+
+        <text
+          [attr.x]="geometry().valueX"
+          [attr.y]="bar.barY + geometry().barHeight / 2"
+          dominant-baseline="middle"
+          text-anchor="end"
+          class="bar-value"
+        >{{ bar.totalCount }} queries · last {{ bar.lastQueried }}</text>
+      }
+    </svg>
+  }
+}

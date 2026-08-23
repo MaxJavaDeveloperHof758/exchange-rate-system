@@ -1,0 +1,29 @@
+.status {
+  margin-top: 1rem;
+}
+
+.status.error {
+  color: #c0392b;
+}
+
+.usage-chart {
+  display: block;
+  margin-top: 1rem;
+}
+
+.bar-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  fill: currentColor;
+}
+
+.bar {
+  fill: currentColor;
+  opacity: 0.75;
+}
+
+.bar-value {
+  font-size: 0.75rem;
+  fill: currentColor;
+  opacity: 0.7;
+}
