@@ -32,3 +32,7 @@ spring:
 fixer:
   api-key: ${FIXER_API_KEY}
   base-url: ${FIXER_BASE_URL:http://data.fixer.io/api}
+
+# The Angular dev server's origin, allowed to call /api/** via CORS (CorsConfig).
+frontend:
+  origin: ${FRONTEND_ORIGIN:http://localhost:4200}
