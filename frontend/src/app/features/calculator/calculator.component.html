@@ -1,0 +1,45 @@
+<h2>Exchange Rate Calculator</h2>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <div class="field">
+    <label for="from">From</label>
+    <input id="from" formControlName="from" maxlength="3" placeholder="EUR" autocomplete="off" />
+    @if (form.controls.from.invalid && form.controls.from.touched) {
+      <p class="field-error">Enter a valid 3-letter currency code.</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="to">To</label>
+    <input id="to" formControlName="to" maxlength="3" placeholder="PLN" autocomplete="off" />
+    @if (form.controls.to.invalid && form.controls.to.touched) {
+      <p class="field-error">Enter a valid 3-letter currency code.</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="date">Date (optional)</label>
+    <input id="date" type="date" formControlName="date" />
+  </div>
+
+  <button type="submit" [disabled]="loading()">
+    {{ loading() ? 'Calculating…' : 'Get rate' }}
+  </button>
+</form>
+
+@if (loading()) {
+  <p class="status loading" role="status">Loading…</p>
+}
+
+@if (errorMessage()) {
+  <p class="status error" role="alert">{{ errorMessage() }}</p>
+}
+
+@if (result(); as r) {
+  <div class="result" role="status">
+    <p class="rate"><strong>{{ r.from }} → {{ r.to }}</strong>: {{ r.exchange }}</p>
+    <p>Rate date: {{ r.date }}</p>
+    <p>{{ r.from }} query count: {{ r.fromQueryCount }}</p>
+    <p>{{ r.to }} query count: {{ r.toQueryCount }}</p>
+  </div>
+}

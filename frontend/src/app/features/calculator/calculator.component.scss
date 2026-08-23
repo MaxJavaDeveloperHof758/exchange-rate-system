@@ -1,0 +1,56 @@
+form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+  max-width: 40rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  input {
+    text-transform: uppercase;
+    padding: 0.4rem 0.5rem;
+    font-size: 1rem;
+  }
+
+  input[type='date'] {
+    text-transform: none;
+  }
+}
+
+.field-error {
+  margin: 0;
+  color: #c0392b;
+  font-size: 0.8rem;
+}
+
+button {
+  align-self: flex-end;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.status {
+  margin-top: 1rem;
+}
+
+.status.error {
+  color: #c0392b;
+}
+
+.result {
+  margin-top: 1rem;
+
+  .rate {
+    font-size: 1.25rem;
+  }
+}
