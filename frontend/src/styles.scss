@@ -1,1 +1,17 @@
 /* You can add global styles to this file, and also import other style files */
+
+/*
+ * This app has no dark theme (no color-scheme was ever set, so it defaults
+ * to "normal"). Without this declaration, browsers that auto-darken pages
+ * which don't declare support for dark mode will invert the whole page's
+ * rendering — every existing hardcoded color in this app (e.g. #c0392b for
+ * errors) already assumes a light background, so that inversion was always
+ * silently fighting the actual design. It became visibly broken once
+ * RateTableComponent's sticky header used an explicit background (which
+ * the same heuristic does not invert the same way), producing a jarring
+ * white-box-on-inverted-page clash. Declaring the real scheme explicitly
+ * stops the browser from guessing.
+ */
+:root {
+  color-scheme: light;
+}

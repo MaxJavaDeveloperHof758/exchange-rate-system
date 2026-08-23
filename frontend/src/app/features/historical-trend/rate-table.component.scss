@@ -1,13 +1,28 @@
-table {
-  border-collapse: collapse;
-  width: 100%;
-  max-width: 30rem;
-}
-
-caption {
+.range-caption {
   text-align: left;
   font-weight: 500;
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.5rem;
+}
+
+.table-scroll {
+  max-width: 30rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+table {
+  width: 100%;
+  /*
+   * Not border-collapse: collapse — Firefox does not support
+   * position: sticky on table cells when the table uses collapsed
+   * borders (a long-standing, documented cross-browser quirk), which
+   * would silently defeat the sticky header below in that browser
+   * specifically. border-spacing: 0 keeps the same visual result
+   * (no gaps between cells) without triggering it.
+   */
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 th,
@@ -15,6 +30,15 @@ td {
   text-align: left;
   padding: 0.35rem 0.75rem;
   border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  /* Adapts to the page's actual light/dark background instead of a
+     hardcoded color — this project has no theme tokens defined. */
+  background: Canvas;
 }
 
 tr.missing {

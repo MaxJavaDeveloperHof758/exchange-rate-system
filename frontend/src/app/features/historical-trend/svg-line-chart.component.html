@@ -1,24 +1,59 @@
 <svg [attr.viewBox]="'0 0 ' + width() + ' ' + height()" [attr.width]="width()" [attr.height]="height()">
+  <text [attr.x]="width() / 2" y="20" text-anchor="middle" class="chart-title">{{ title() }}</text>
+
   @if (geometry().polylinePoints) {
+    @for (tick of geometry().yTicks; track tick.label + tick.position) {
+      <line
+        [attr.x1]="geometry().plotLeft"
+        [attr.x2]="geometry().plotRight"
+        [attr.y1]="tick.position"
+        [attr.y2]="tick.position"
+        class="grid-line"
+      />
+    }
+
     <polyline [attr.points]="geometry().polylinePoints" class="line" />
-  }
 
-  @for (tick of geometry().yTicks; track tick.label) {
-    <text x="4" [attr.y]="tick.position" class="tick y-tick">{{ tick.label }}</text>
-  }
+    @for (tick of geometry().yTicks; track tick.label + tick.position) {
+      <text
+        [attr.x]="geometry().plotLeft - 6"
+        [attr.y]="tick.position"
+        text-anchor="end"
+        class="tick y-tick"
+      >{{ tick.label }}</text>
+    }
 
-  @for (tick of geometry().xTicks; let isFirst = $first; track tick.label) {
+    @for (tick of geometry().xTicks; let isFirst = $first; let isLast = $last; track tick.label + tick.position) {
+      <text
+        [attr.x]="tick.position"
+        [attr.y]="geometry().plotBottom + 14"
+        [attr.text-anchor]="geometry().rotateXLabels ? 'end' : (isFirst ? 'start' : isLast ? 'end' : 'middle')"
+        [attr.transform]="
+          geometry().rotateXLabels
+            ? 'rotate(-30 ' + tick.position + ' ' + (geometry().plotBottom + 14) + ')'
+            : null
+        "
+        class="tick x-tick"
+      >{{ tick.label }}<title>{{ tick.title }}</title></text>
+    }
+
     <text
-      [attr.x]="tick.position"
-      [attr.y]="height() - 4"
-      [attr.text-anchor]="isFirst ? 'start' : 'end'"
-      class="tick x-tick"
-    >{{ tick.label }}</text>
-  }
+      x="10"
+      [attr.y]="(geometry().plotTop + geometry().plotBottom) / 2"
+      [attr.transform]="'rotate(-90 10 ' + (geometry().plotTop + geometry().plotBottom) / 2 + ')'"
+      text-anchor="middle"
+      class="axis-title"
+    >Exchange rate</text>
 
-  @if (!geometry().polylinePoints) {
+    <text
+      [attr.x]="(geometry().plotLeft + geometry().plotRight) / 2"
+      [attr.y]="geometry().plotBottom + 30"
+      text-anchor="middle"
+      class="axis-title"
+    >Date</text>
+  } @else {
     <text [attr.x]="width() / 2" [attr.y]="height() / 2" text-anchor="middle" class="empty-message">
-      No data to display.
+      Not enough data points
     </text>
   }
 </svg>

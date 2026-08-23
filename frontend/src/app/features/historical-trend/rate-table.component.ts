@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import { Component, computed, input } from '@angular/core';
 import { HistoryResponse } from '../../core/models/history.model';
 
@@ -16,6 +17,7 @@ interface RateTableRow {
  */
 @Component({
   selector: 'app-rate-table',
+  imports: [DecimalPipe],
   templateUrl: './rate-table.component.html',
   styleUrl: './rate-table.component.scss',
 })

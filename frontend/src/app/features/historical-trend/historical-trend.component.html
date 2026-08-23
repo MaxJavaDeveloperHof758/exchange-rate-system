@@ -1,0 +1,69 @@
+<h2>Historical Rates & Trend</h2>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <div class="field">
+    <label for="from">From</label>
+    <input id="from" formControlName="from" maxlength="3" placeholder="EUR" autocomplete="off" />
+    @if (form.controls.from.invalid && form.controls.from.touched) {
+      <p class="field-error">Enter a valid 3-letter currency code.</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="to">To</label>
+    <input id="to" formControlName="to" maxlength="3" placeholder="PLN" autocomplete="off" />
+    @if (form.controls.to.invalid && form.controls.to.touched) {
+      <p class="field-error">Enter a valid 3-letter currency code.</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="startDate">Start date</label>
+    <input id="startDate" type="date" formControlName="startDate" />
+    @if (form.controls.startDate.invalid && form.controls.startDate.touched) {
+      <p class="field-error">Start date is required.</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="endDate">End date</label>
+    <input id="endDate" type="date" formControlName="endDate" />
+    @if (form.controls.endDate.invalid && form.controls.endDate.touched) {
+      <p class="field-error">End date is required.</p>
+    }
+  </div>
+
+  <button type="submit" [disabled]="historyLoading()">
+    {{ historyLoading() ? 'Loading…' : 'Show trend' }}
+  </button>
+</form>
+
+@if (formError()) {
+  <p class="status error" role="alert">{{ formError() }}</p>
+}
+
+<div class="panels">
+  <section class="table-panel">
+    @if (historyLoading()) {
+      <p class="status loading" role="status">Loading history…</p>
+    }
+    @if (historyError()) {
+      <p class="status error" role="alert">{{ historyError() }}</p>
+    }
+    @if (historyResponse(); as h) {
+      <app-rate-table [history]="h" />
+    }
+  </section>
+
+  <section class="chart-panel">
+    @if (historyResponse()) {
+      <app-svg-line-chart [points]="chartPoints()" [title]="chartTitle()" />
+    }
+  </section>
+
+  <section class="insight-section">
+    @if (insightParams(); as p) {
+      <app-insight-panel [from]="p.from" [to]="p.to" [fromDate]="p.fromDate" [toDate]="p.toDate" />
+    }
+  </section>
+</div>
