@@ -1,0 +1,15 @@
+<h3>AI Trend Insight</h3>
+
+@if (state(); as s) {
+  @switch (s.status) {
+    @case ('loading') {
+      <p class="status loading" role="status">Generating insight…</p>
+    }
+    @case ('error') {
+      <p class="status error" role="alert">{{ s.message }}</p>
+    }
+    @case ('success') {
+      <p class="insight-text">{{ s.insight }}</p>
+    }
+  }
+}

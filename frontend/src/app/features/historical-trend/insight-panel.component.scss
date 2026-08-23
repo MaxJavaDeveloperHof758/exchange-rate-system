@@ -1,0 +1,16 @@
+:host {
+  display: block;
+  max-width: 30rem;
+}
+
+.status.error {
+  color: #c0392b;
+}
+
+.status.loading {
+  opacity: 0.7;
+}
+
+.insight-text {
+  line-height: 1.5;
+}
