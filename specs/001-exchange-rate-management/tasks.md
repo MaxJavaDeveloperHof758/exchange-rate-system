@@ -219,23 +219,23 @@ contracts/exchange.md — all independently curl-able with no frontend involved.
       `RateIngestionService#ingestLatestRates`, returns `202` with a timestamp per
       contracts/exchange.md, maps a `FixerClient` failure to `502` via `UpstreamFetchException`,
       and never calls `UsageTrackingService`. *(depends on T016, T021)*
-- [ ] T029 [P] [US3] Create `AnalyticsResponse` DTO in
+- [X] T029 [P] [US3] Create `AnalyticsResponse` DTO in
       `src/main/java/com/exchange/exchangeratesystem/usage/dto/AnalyticsResponse.java`
       (`topCurrencies: List<CurrencyUsageEntry>`, each `currency`/`totalCount`/`lastQueried`) and
       `AnalyticsController` in
       `src/main/java/com/exchange/exchangeratesystem/web/AnalyticsController.java` exposing
       `GET /api/analytics` sorted by `totalCount` descending, per contracts/analytics.md.
       *(depends on T011)*
-- [ ] T030 [US1] Integration test in
+- [X] T030 [US1] Integration test in
       `src/test/java/com/exchange/exchangeratesystem/web/ExchangeRateControllerIT.java`
       (`@SpringBootTest`, real database) covering: success case with counter increment verified
       via a follow-up `/api/analytics` call, `404` on missing date, `400` on unknown currency
       code. *(depends on T027)*
-- [ ] T031 [P] Add a `dev`-profile-gated `CommandLineRunner` seeder in
+- [X] T031 [P] Add a `dev`-profile-gated `CommandLineRunner` seeder in
       `src/main/java/com/exchange/exchangeratesystem/config/DevDataSeeder.java` inserting the
       EUR/PLN worked-example rows (0.8/3.7 rate-to-base) for today's date, so quickstart.md's
       steps are runnable without waiting on Fixer.io or the scheduler.
-- [ ] T032 [P] Review springdoc-openapi annotations across `ExchangeRateController` and
+- [X] T032 [P] Review springdoc-openapi annotations across `ExchangeRateController` and
       `AnalyticsController` so Swagger UI documents every parameter, response shape, and error
       code exactly as specified in contracts/exchange.md and contracts/analytics.md.
       *(depends on T027, T029)*
@@ -260,14 +260,14 @@ contracts/insight.md, without affecting `/api/exchange/history` for the same ran
 
 ### Files to create
 
-- [ ] T033 [US2] Add Spring AI's Ollama chat-model starter dependency wiring confirmation to
+- [X] T033 [US2] Add Spring AI's Ollama chat-model starter dependency wiring confirmation to
       `application.yml` (T002) — `spring.ai.ollama.base-url` and
       `spring.ai.ollama.chat.options.model` per research.md Decision 2; no code change beyond
       configuration if the starter auto-configures a `ChatClient` bean.
-- [ ] T034 [US2] Create `src/main/java/com/exchange/exchangeratesystem/error/InsightUnavailableException.java`
+- [X] T034 [US2] Create `src/main/java/com/exchange/exchangeratesystem/error/InsightUnavailableException.java`
       and map it to `503` in `GlobalExceptionHandler` (extends Stage 3's T021 handler) per
       contracts/insight.md.
-- [ ] T035 [US2] Create `TrendInsightService` in
+- [X] T035 [US2] Create `TrendInsightService` in
       `src/main/java/com/exchange/exchangeratesystem/insight/TrendInsightService.java` —
       `String generateInsight(String from, String to, LocalDate fromDate, LocalDate toDate)`:
       reads the same `(date, rate)` series `ExchangeRateController#getHistory` would return (via
@@ -277,20 +277,20 @@ contracts/insight.md, without affecting `/api/exchange/history` for the same ran
       throws `InsightUnavailableException` on any model-call failure. A single-day range MUST
       produce a single-observation phrasing, not a multi-day trend framing (spec.md User Story 2,
       Acceptance Scenario 6). *(depends on T009, T034)*
-- [ ] T036 [P] [US2] Unit test in
+- [X] T036 [P] [US2] Unit test in
       `src/test/java/com/exchange/exchangeratesystem/insight/TrendInsightServiceTest.java` using a
       mocked `ChatClient`/`ChatModel` to assert: (a) the constructed prompt/user-message contains
       the actual injected rate values for the requested range, and (b) a `ChatClient` failure is
       translated into `InsightUnavailableException`, not an unhandled exception.
       *(depends on T035)*
-- [ ] T037 [US2] Create `InsightResponse` DTO in
+- [X] T037 [US2] Create `InsightResponse` DTO in
       `src/main/java/com/exchange/exchangeratesystem/insight/dto/InsightResponse.java`
       (`from`, `to`, `fromDate`, `toDate`, `insight` per contracts/insight.md) and
       `InsightController` in
       `src/main/java/com/exchange/exchangeratesystem/web/InsightController.java` exposing
       `GET /api/exchange/insight` — `404` when no data exists in range (reusing T009's range
       query), `503` via T034 when the model call fails. *(depends on T035, T037's own DTO, T021)*
-- [ ] T038 [P] Extend Swagger/OpenAPI annotations to `InsightController` so it appears correctly
+- [X] T038 [P] Extend Swagger/OpenAPI annotations to `InsightController` so it appears correctly
       documented in Swagger UI alongside Stage 3's endpoints. *(depends on T037)*
 
 **Checkpoint**: User Story 2's AI half works end-to-end via HTTP, independent of the frontend, and
@@ -310,63 +310,63 @@ quickstart.md Step 6, with each view showing correct loading/error/success state
 
 ### Files to create
 
-- [ ] T039 Create `frontend/src/environments/environment.ts` and
+- [X] T039 Create `frontend/src/environments/environment.ts` and
       `environment.development.ts`, each exporting `{ apiBaseUrl: string }` (dev value pointing
       at the local backend), and configure `frontend/angular.json`'s `fileReplacements` for the
       `development` configuration (FR-019/NFR-007).
-- [ ] T040 [P] Create shared Angular response models in `frontend/src/app/core/models/`:
+- [X] T040 [P] Create shared Angular response models in `frontend/src/app/core/models/`:
       `exchange-rate.model.ts`, `history.model.ts`, `analytics.model.ts`, `insight.model.ts` —
       each matching the corresponding file in [contracts/](contracts/) field-for-field.
       *(depends on T039)*
-- [ ] T041 [P] Create the Angular app shell and routing in `frontend/src/app/app.routes.ts` and
+- [X] T041 [P] Create the Angular app shell and routing in `frontend/src/app/app.routes.ts` and
       `frontend/src/app/app.config.ts`: three lazy standalone routes, `/calculator`, `/trend`,
       `/analytics`, plus a top-level nav shell component. *(depends on T039)*
-- [ ] T042 [P] [US1] Implement `ExchangeRateService` in
+- [X] T042 [P] [US1] Implement `ExchangeRateService` in
       `frontend/src/app/core/services/exchange-rate.service.ts` — `getRate(from, to, date?)`
       calling `GET /api/exchange` via `HttpClient`, typed with T040's model.
       *(depends on T040)*
-- [ ] T043 [US1] Implement `CalculatorComponent` (standalone) in
+- [X] T043 [US1] Implement `CalculatorComponent` (standalone) in
       `frontend/src/app/features/calculator/calculator.component.ts` (+ `.html`/`.scss`):
       reactive form (from/to/optional date), a loading state while the request is in flight, a
       distinct error state on `400`/`404` (contracts/exchange.md), a success state rendering the
       rate and both query counts. *(depends on T042, T041)*
-- [ ] T044 [P] [US1] Component test in
+- [X] T044 [P] [US1] Component test in
       `frontend/src/app/features/calculator/calculator.component.spec.ts` covering: invalid input
       is rejected before submit, loading indicator shows during the call, error message renders
       on a mocked `404`, success view renders on a mocked `200`. *(depends on T043)*
-- [ ] T045 [P] [US2] Implement `HistoryService` and `InsightService` in
+- [X] T045 [P] [US2] Implement `HistoryService` and `InsightService` in
       `frontend/src/app/core/services/history.service.ts` and `insight.service.ts` — one method
       each calling `GET /api/exchange/history` and `GET /api/exchange/insight` respectively, both
       typed with T040's models. *(depends on T040)*
-- [ ] T046 [US2] Implement `SvgLineChartComponent` in
+- [X] T046 [US2] Implement `SvgLineChartComponent` in
       `frontend/src/app/features/historical-trend/svg-line-chart.component.ts`: a pure function
       mapping `{date, rate}[]` to an SVG `<polyline>` + axis ticks, no charting-library dependency
       (research.md Decision 1). *(depends on T041)*
-- [ ] T047 [P] [US2] Unit test in
+- [X] T047 [P] [US2] Unit test in
       `frontend/src/app/features/historical-trend/svg-line-chart.component.spec.ts` testing the
       pure point-to-path mapping function directly (min/max scaling, empty-data case).
       *(depends on T046)*
-- [ ] T048 [US2] Implement `RateTableComponent` in
+- [X] T048 [US2] Implement `RateTableComponent` in
       `frontend/src/app/features/historical-trend/rate-table.component.ts` rendering the raw
       history points, with a visible indicator for any `missingDates` (contracts/exchange.md).
       *(depends on T045)*
-- [ ] T049 [US2] Implement `InsightPanelComponent` in
+- [X] T049 [US2] Implement `InsightPanelComponent` in
       `frontend/src/app/features/historical-trend/insight-panel.component.ts` with its own
       loading/error/success state, independent of the table/chart's state (FR-017).
       *(depends on T045)*
-- [ ] T050 [US2] Implement `HistoricalTrendComponent` in
+- [X] T050 [US2] Implement `HistoricalTrendComponent` in
       `frontend/src/app/features/historical-trend/historical-trend.component.ts` composing a
       pair+date-range picker with `RateTableComponent`, `SvgLineChartComponent`, and
       `InsightPanelComponent` side by side, firing the history and insight requests in parallel.
       *(depends on T046, T048, T049)*
-- [ ] T051 [P] [US3] Implement `AnalyticsService` in
+- [X] T051 [P] [US3] Implement `AnalyticsService` in
       `frontend/src/app/core/services/analytics.service.ts` calling `GET /api/analytics`, typed
       with T040's model. *(depends on T040)*
-- [ ] T052 [US3] Implement `AnalyticsDashboardComponent` in
+- [X] T052 [US3] Implement `AnalyticsDashboardComponent` in
       `frontend/src/app/features/analytics-dashboard/analytics-dashboard.component.ts`: a ranked
       list/bar visualization of `topCurrencies` (reusing the no-dependency SVG approach from
       research.md Decision 1). *(depends on T051)*
-- [ ] T053 [P] [US3] Component test in
+- [X] T053 [P] [US3] Component test in
       `frontend/src/app/features/analytics-dashboard/analytics-dashboard.component.spec.ts`
       covering the empty-data state and a populated-ranking render. *(depends on T052)*
 
