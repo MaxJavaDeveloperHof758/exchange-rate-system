@@ -53,6 +53,14 @@ public class GlobalExceptionHandler {
         return errorResponse(HttpStatus.BAD_REQUEST, e.getErrorCode(), e.getMessage());
     }
 
+    @ExceptionHandler(InsightUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleInsightUnavailable(InsightUnavailableException e) {
+        log.error("Trend insight generation failed: {}", e.getCause() != null
+                ? e.getCause().getMessage()
+                : e.getMessage());
+        return errorResponse(HttpStatus.SERVICE_UNAVAILABLE, e.getErrorCode(), e.getMessage());
+    }
+
     /**
      * A query parameter failed type conversion — most notably a malformed
      * {@code date}/{@code startDate}/{@code endDate}/{@code fromDate}/
