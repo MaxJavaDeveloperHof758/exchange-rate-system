@@ -96,9 +96,13 @@ Expected: navigating to the served URL loads the app shell with three routes: `/
    insight panel shows its own loading state before rendering commentary sourced from
    [contracts/insight.md](contracts/insight.md) — stop Ollama and reload to confirm the insight
    panel shows a distinct error state without breaking the table/chart (NFR-005).
-3. **Usage Analytics Dashboard** (`/analytics`): confirm the currencies queried in Steps 3–4 and
-   6.1 appear, ranked by count, matching [contracts/analytics.md](contracts/analytics.md) and
-   SC-006.
+3. **Usage Analytics Dashboard** (`/analytics`): confirm EUR and PLN appear, ranked by count,
+   reflecting Step 4's concurrency requests plus Step 6.1's Calculator lookup — matching
+   [contracts/analytics.md](contracts/analytics.md) and SC-006. Step 3's two calls must **not**
+   be reflected here: both are deliberately unsuccessful (a `404` and a `400`), and usage
+   tracking only fires on a successful `/api/exchange` lookup (FR-011's scope) — a currency
+   appearing in `/api/analytics` after only a failed lookup would itself be a bug worth catching,
+   not a step to confirm.
 
 ## Step 7 — Re-run ingestion idempotency check
 
