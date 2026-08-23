@@ -1,0 +1,27 @@
+@if (history(); as h) {
+  <table>
+    <caption>{{ h.from }} → {{ h.to }}, {{ h.startDate }} to {{ h.endDate }}</caption>
+    <thead>
+      <tr>
+        <th scope="col">Date</th>
+        <th scope="col">Exchange rate</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.date) {
+        <tr [class.missing]="row.missing">
+          <td>{{ row.date }}</td>
+          <td>
+            @if (row.missing) {
+              <span class="missing-indicator" role="status">No data available</span>
+            } @else {
+              {{ row.exchange }}
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+} @else {
+  <p>No data to display.</p>
+}
