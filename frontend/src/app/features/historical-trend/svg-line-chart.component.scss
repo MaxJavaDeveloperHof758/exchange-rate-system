@@ -1,0 +1,21 @@
+:host {
+  display: block;
+}
+
+.line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.tick {
+  font-size: 0.7rem;
+  fill: currentColor;
+  opacity: 0.7;
+}
+
+.empty-message {
+  font-size: 0.85rem;
+  fill: currentColor;
+  opacity: 0.6;
+}

@@ -1,0 +1,24 @@
+<svg [attr.viewBox]="'0 0 ' + width() + ' ' + height()" [attr.width]="width()" [attr.height]="height()">
+  @if (geometry().polylinePoints) {
+    <polyline [attr.points]="geometry().polylinePoints" class="line" />
+  }
+
+  @for (tick of geometry().yTicks; track tick.label) {
+    <text x="4" [attr.y]="tick.position" class="tick y-tick">{{ tick.label }}</text>
+  }
+
+  @for (tick of geometry().xTicks; let isFirst = $first; track tick.label) {
+    <text
+      [attr.x]="tick.position"
+      [attr.y]="height() - 4"
+      [attr.text-anchor]="isFirst ? 'start' : 'end'"
+      class="tick x-tick"
+    >{{ tick.label }}</text>
+  }
+
+  @if (!geometry().polylinePoints) {
+    <text [attr.x]="width() / 2" [attr.y]="height() / 2" text-anchor="middle" class="empty-message">
+      No data to display.
+    </text>
+  }
+</svg>
