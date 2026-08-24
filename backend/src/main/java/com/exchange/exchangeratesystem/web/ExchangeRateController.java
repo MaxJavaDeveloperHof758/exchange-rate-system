@@ -323,21 +323,22 @@ public class ExchangeRateController {
         }
     }
 
-    /** The later of two currencies' single most-recent stored dates, taking the earlier of the two. */
+    /**
+     * The most recent date on which both currencies actually have stored
+     * data — resolved as one query (findMostRecentCommonDate), not by
+     * comparing each currency's own single latest date against the other's.
+     * Comparing single latest dates can pick a date that only one of the
+     * two currencies has (e.g. EUR's latest is the 10th, PLN's latest is
+     * the 9th, but EUR has no data at all on the 9th) even when an actual
+     * earlier common date does exist.
+     */
     private LocalDate mostRecentCommonDate(String fromCode, String toCode) {
-        LocalDate fromLatest = latestDateOrThrow(fromCode, toCode);
-        LocalDate toLatest = latestDateOrThrow(toCode, fromCode);
-        return fromLatest.isBefore(toLatest) ? fromLatest : toLatest;
-    }
-
-    private LocalDate latestDateOrThrow(String code, String pairedCode) {
         return exchangeRateRepository
-                .findTopByCurrencyCodeOrderByRateDateDesc(code)
-                .map(ExchangeRate::getRateDate)
+                .findMostRecentCommonDate(fromCode, toCode)
                 .orElseThrow(
                         () ->
                                 new RateNotAvailableException(
-                                        "No rate data available for " + code + "/" + pairedCode));
+                                        "No common rate date available for " + fromCode + "/" + toCode));
     }
 
     private ExchangeRate findRate(String fromCode, String toCode, LocalDate rateDate, String code) {

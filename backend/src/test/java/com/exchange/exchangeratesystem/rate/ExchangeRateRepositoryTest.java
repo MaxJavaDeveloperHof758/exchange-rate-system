@@ -75,4 +75,49 @@ class ExchangeRateRepositoryTest {
 
         assertThat(repository.count()).isEqualTo(2);
     }
+
+    /**
+     * Both currencies' own most-recent date happens to coincide — the
+     * simple case a naive "compare each currency's own latest date"
+     * approach also gets right.
+     */
+    @Test
+    void findMostRecentCommonDateReturnsSharedLatestDateWhenHistoriesAlign() {
+        seed("EUR", LocalDate.of(2026, 3, 10), LocalDate.of(2026, 3, 9));
+        seed("PLN", LocalDate.of(2026, 3, 10), LocalDate.of(2026, 3, 8));
+
+        assertThat(repository.findMostRecentCommonDate("EUR", "PLN"))
+                .contains(LocalDate.of(2026, 3, 10));
+    }
+
+    /**
+     * Reproduces the divergent-history case a "min of each currency's own
+     * latest date" approach gets wrong: EUR's own latest (10th) has no PLN
+     * data at all, and PLN's own latest (9th) has no EUR data either — the
+     * naive approach would pick the 9th (min(10, 9)) and 404, even though a
+     * real common date (the 7th) exists further back. The correct answer
+     * must actually be found, not merely fail safely.
+     */
+    @Test
+    void findMostRecentCommonDateSkipsPastNonCommonLatestDates() {
+        seed("EUR", LocalDate.of(2026, 3, 10), LocalDate.of(2026, 3, 7));
+        seed("PLN", LocalDate.of(2026, 3, 9), LocalDate.of(2026, 3, 7));
+
+        assertThat(repository.findMostRecentCommonDate("EUR", "PLN"))
+                .contains(LocalDate.of(2026, 3, 7));
+    }
+
+    @Test
+    void findMostRecentCommonDateIsEmptyWhenNoDateOverlapsAtAll() {
+        seed("EUR", LocalDate.of(2026, 3, 10));
+        seed("PLN", LocalDate.of(2026, 3, 9));
+
+        assertThat(repository.findMostRecentCommonDate("EUR", "PLN")).isEmpty();
+    }
+
+    private void seed(String currencyCode, LocalDate... rateDates) {
+        for (LocalDate rateDate : rateDates) {
+            repository.saveAndFlush(new ExchangeRate(currencyCode, new BigDecimal("1.00"), rateDate));
+        }
+    }
 }

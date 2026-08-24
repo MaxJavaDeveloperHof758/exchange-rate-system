@@ -21,6 +21,26 @@ public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long
             String currencyCode, LocalDate start, LocalDate end);
 
     /**
+     * The most recent date on which BOTH currencies have a stored rate —
+     * deliberately not each currency's own {@code findTopByCurrencyCodeOrderByRateDateDesc}
+     * compared against each other, which can silently pick a date only one
+     * of the two actually has data for whenever their ingestion histories
+     * diverge (e.g. one currency missing a day the other has). The EXISTS
+     * subquery finds, among every date the first currency has, the latest
+     * one the second currency also has — plain JPQL, no native/dialect-specific SQL.
+     */
+    @Query("""
+            SELECT MAX(a.rateDate) FROM ExchangeRate a
+            WHERE a.currencyCode = :fromCode
+              AND EXISTS (
+                  SELECT 1 FROM ExchangeRate b
+                  WHERE b.currencyCode = :toCode AND b.rateDate = a.rateDate
+              )
+            """)
+    Optional<LocalDate> findMostRecentCommonDate(
+            @Param("fromCode") String fromCode, @Param("toCode") String toCode);
+
+    /**
      * Idempotent, multi-instance-safe upsert keyed on the (currency_code, rate_date)
      * unique constraint (research.md Decision 3) — a single atomic H2 MERGE, not a
      * "select then decide insert/update" round trip. Inserts a new row with both

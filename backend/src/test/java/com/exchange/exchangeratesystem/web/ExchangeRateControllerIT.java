@@ -159,6 +159,33 @@ class ExchangeRateControllerIT {
         assertThat(currencyUsageRepository.count()).isZero();
     }
 
+    /**
+     * End-to-end reproduction of the divergent-ingestion-history case: EUR's
+     * own most-recent date (the 10th) has no PLN data, and PLN's own
+     * most-recent date (the 9th) has no EUR data either — comparing each
+     * currency's own latest date and taking the earlier one would pick the
+     * 9th and 404, even though both currencies actually share real data on
+     * the 7th. Omitting {@code date} entirely must still resolve to the
+     * 7th, not fail.
+     */
+    @Test
+    void omittedDateResolvesToDeepestActualCommonDateNotJustTheEarlierOfEachLatest() throws Exception {
+        exchangeRateRepository.upsert("EUR", new BigDecimal("0.80"), LocalDate.of(2026, 3, 10));
+        exchangeRateRepository.upsert("EUR", new BigDecimal("0.79"), LocalDate.of(2026, 3, 7));
+        exchangeRateRepository.upsert("PLN", new BigDecimal("3.71"), LocalDate.of(2026, 3, 9));
+        exchangeRateRepository.upsert("PLN", new BigDecimal("3.70"), LocalDate.of(2026, 3, 7));
+
+        MvcResult result =
+                mockMvc.perform(get("/api/exchange").param("from", "EUR").param("to", "PLN"))
+                        .andExpect(status().isOk())
+                        .andReturn();
+        ExchangeRateResponse response =
+                OBJECT_MAPPER.readValue(
+                        result.getResponse().getContentAsString(), ExchangeRateResponse.class);
+
+        assertThat(response.date()).isEqualTo(LocalDate.of(2026, 3, 7));
+    }
+
     /** {@code from}/{@code to} outside {@code CurrencyCode}'s recognized set, per FR-010. */
     @Test
     void unknownCurrencyCodeReturns400AndDoesNotIncrementUsage() throws Exception {
