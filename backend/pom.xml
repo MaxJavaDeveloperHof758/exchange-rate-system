@@ -54,6 +54,32 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!--
+            Spring Boot 4.x split Flyway's autoconfiguration out of
+            spring-boot-autoconfigure into this dedicated starter; the plain
+            org.flywaydb:flyway-core artifact alone compiles but never
+            triggers migrations on startup under this Boot version.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+        <!--
+            flyway-core alone (pulled in transitively above) no longer
+            recognizes ANY specific database, PostgreSQL included - Flyway
+            10+ moved each database's dialect support into its own plugin
+            module, confirmed empirically (startup failed with
+            "Unsupported Database: PostgreSQL 16.15" without this).
+        -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.7.0</version>
@@ -129,6 +155,34 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            Real PostgreSQL for tests (Testcontainers), replacing H2 now that
+            production-path SQL (ExchangeRateRepository#upsert) is
+            Postgres-specific and no longer runs on H2 at all.
+            spring-boot-testcontainers brings @ServiceConnection, which wires
+            a container bean straight into the DataSource/Flyway/JPA
+            auto-configuration with no manual property plumbing.
+            Testcontainers 2.x (the line Boot 4.1.0's BOM pins, 2.0.5)
+            renamed these two modules with a testcontainers- prefix
+            (testcontainers-junit-jupiter/testcontainers-postgresql) - the
+            bare 1.x names (junit-jupiter/postgresql) no longer exist in the
+            BOM's dependencyManagement, confirmed by inspecting it directly.
+        -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

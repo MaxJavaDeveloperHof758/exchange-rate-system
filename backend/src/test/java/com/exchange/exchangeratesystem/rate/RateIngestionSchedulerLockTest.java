@@ -10,7 +10,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import com.exchange.exchangeratesystem.support.PostgresTestContainerConfig;
 
 /**
  * Proves ShedLock's mutual exclusion actually works end to end, not just
@@ -18,16 +21,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
  * AOP-proxied {@link RateIngestionScheduler#ingestDailyRates()} contend for
  * the same database-backed lock row, exactly as two application instances
  * pointed at the same database would at 00:05 GMT. The exclusion here is
- * enforced by a row in the {@code shedlock} table (schema.sql), not by JVM
- * thread synchronization, so a single test process genuinely exercises the
- * multi-instance guarantee.
+ * enforced by a row in the {@code shedlock} table (Flyway's V1 migration),
+ * not by JVM thread synchronization, so a single test process genuinely
+ * exercises the multi-instance guarantee.
  */
-@SpringBootTest(
-        properties = {
-            "fixer.api-key=test-key",
-            "spring.datasource.url=jdbc:h2:mem:rate-ingestion-scheduler-lock;DB_CLOSE_DELAY=-1",
-            "spring.jpa.hibernate.ddl-auto=create-drop"
-        })
+@SpringBootTest(properties = "fixer.api-key=test-key")
+@Import(PostgresTestContainerConfig.class)
 class RateIngestionSchedulerLockTest {
 
     @Autowired

@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -22,28 +23,28 @@ import com.exchange.exchangeratesystem.error.ErrorResponse;
 import com.exchange.exchangeratesystem.rate.ExchangeRateRepository;
 import com.exchange.exchangeratesystem.rate.SpreadCalculationService;
 import com.exchange.exchangeratesystem.rate.dto.ExchangeRateResponse;
+import com.exchange.exchangeratesystem.support.PostgresTestContainerConfig;
 import com.exchange.exchangeratesystem.usage.CurrencyUsageRepository;
 import com.exchange.exchangeratesystem.usage.dto.AnalyticsResponse;
 import com.exchange.exchangeratesystem.usage.dto.CurrencyUsageEntry;
 
 /**
  * T030: full-stack coverage of {@code GET /api/exchange} through the real
- * {@code DispatcherServlet}/{@code GlobalExceptionHandler}/repository/H2 stack
- * (MockMvc, not a mocked repository) — the success path's counter increment is
- * asserted indirectly through a follow-up real {@code GET /api/analytics} call,
- * exactly as a client would observe it, rather than by reaching into
- * {@link CurrencyUsageRepository} directly.
+ * {@code DispatcherServlet}/{@code GlobalExceptionHandler}/repository/Postgres
+ * stack (MockMvc, not a mocked repository) — the success path's counter
+ * increment is asserted indirectly through a follow-up real
+ * {@code GET /api/analytics} call, exactly as a client would observe it,
+ * rather than by reaching into {@link CurrencyUsageRepository} directly.
  *
- * The datasource is overridden to an isolated in-memory H2 instance (never the
- * real {@code backend/data/exchangedb} file) and {@code fixer.api-key} is
- * supplied because {@code WebClientConfig}'s bean requires it eagerly at
- * context startup, mirroring {@code RateIngestionServiceTest}/
- * {@code UsageTrackingServiceTest}. Deliberately not
- * {@code @Transactional}/{@code @Rollback}, for the same reason as
- * {@code UsageTrackingServiceTest}: {@code UsageTrackingService}'s writes run
- * in their own {@code REQUIRES_NEW} transactions on separate connections, so
- * an outer test transaction's rollback would never undo them anyway. Isolation
- * is manual cleanup in {@link #cleanUp()} instead.
+ * The datasource is a dedicated Testcontainers Postgres instance (never the
+ * real deployed database) and {@code fixer.api-key} is supplied because
+ * {@code WebClientConfig}'s bean requires it eagerly at context startup,
+ * mirroring {@code RateIngestionServiceTest}/{@code UsageTrackingServiceTest}.
+ * Deliberately not {@code @Transactional}/{@code @Rollback}, for the same
+ * reason as {@code UsageTrackingServiceTest}: {@code UsageTrackingService}'s
+ * writes run in their own {@code REQUIRES_NEW} transactions on separate
+ * connections, so an outer test transaction's rollback would never undo them
+ * anyway. Isolation is manual cleanup in {@link #cleanUp()} instead.
  *
  * The response body is parsed with a locally-instantiated Jackson 2
  * {@code ObjectMapper} rather than an {@code @Autowired} one: Spring Boot
@@ -53,13 +54,9 @@ import com.exchange.exchangeratesystem.usage.dto.CurrencyUsageEntry;
  * library the server used to write it, so parsing it with either library on
  * the reading side is equally valid.
  */
-@SpringBootTest(
-        properties = {
-            "fixer.api-key=test-key",
-            "spring.datasource.url=jdbc:h2:mem:exchange-rate-controller-it;DB_CLOSE_DELAY=-1",
-            "spring.jpa.hibernate.ddl-auto=create-drop"
-        })
+@SpringBootTest(properties = "fixer.api-key=test-key")
 @AutoConfigureMockMvc
+@Import(PostgresTestContainerConfig.class)
 class ExchangeRateControllerIT {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();

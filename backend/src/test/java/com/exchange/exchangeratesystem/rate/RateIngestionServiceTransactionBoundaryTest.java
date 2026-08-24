@@ -12,8 +12,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import com.exchange.exchangeratesystem.support.PostgresTestContainerConfig;
 
 /**
  * Confirms the Fixer.io call inside {@link RateIngestionService#ingestLatestRates()}
@@ -27,11 +30,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
-        properties = {
-            "fixer.api-key=test-key",
-            "spring.datasource.url=jdbc:h2:mem:rate-ingestion-tx-boundary-test;DB_CLOSE_DELAY=-1",
-            "spring.jpa.hibernate.ddl-auto=create-drop"
-        })
+        properties = "fixer.api-key=test-key")
+@Import(PostgresTestContainerConfig.class)
 class RateIngestionServiceTransactionBoundaryTest {
 
     @MockitoBean

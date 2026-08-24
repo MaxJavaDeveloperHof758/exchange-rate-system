@@ -10,6 +10,8 @@ belongs in `tasks.md` and the actual code, not here.
   version) and Maven.
 - Node.js + npm (for `ng serve`), Angular CLI compatible with the version pinned in
   `frontend/package.json`.
+- Docker, running — a local PostgreSQL instance for the backend to connect to (Step 1), and
+  required by the backend's Testcontainers-based test suite.
 - A Fixer.io free-tier API key (Section 2 of the brief) set as an environment variable — do not
   hardcode it in `application.yml`.
 - Ollama installed locally, with the configured model pulled (research.md Decision 2), *or* an
@@ -19,15 +21,19 @@ belongs in `tasks.md` and the actual code, not here.
 ## Step 1 — Start the backend
 
 ```bash
+docker run --name exchange-postgres \
+  -e POSTGRES_DB=exchangedb -e POSTGRES_USER=exchange -e POSTGRES_PASSWORD=exchange \
+  -p 5432:5432 -d postgres:16
+
 export FIXER_API_KEY=your-fixer-io-key
 export SPRING_PROFILES_ACTIVE=dev
 mvn spring-boot:run
 ```
 
-The `dev` profile does two things (T031): enables schema auto-creation for the local file-based
-H2 database (`spring.jpa.hibernate.ddl-auto=update`, `application-dev.yml`) and activates
-`DevDataSeeder`, a `CommandLineRunner` that idempotently inserts the EUR/PLN worked-example rates
-below on every startup — safe to restart repeatedly, never duplicates rows.
+Schema creation is owned by Flyway (`backend/src/main/resources/db/migration/`) for every
+profile — the `dev` profile's only job (T031) is activating `DevDataSeeder`, a
+`CommandLineRunner` that idempotently inserts the EUR/PLN worked-example rates below on every
+startup — safe to restart repeatedly, never duplicates rows.
 
 Expected: the application starts on its configured port with no startup errors, and
 `/swagger-ui.html` (or the configured springdoc path) is reachable and lists every endpoint in

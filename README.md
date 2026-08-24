@@ -26,6 +26,9 @@ build tooling between them:
 - **Java 25** and **Maven** — `backend/pom.xml` pins `<java.version>25</java.version>`
   (the constitution's floor is Java 17+; this repo's actual pinned version is 25).
 - **Node.js + npm**, and the Angular CLI (`frontend/package.json` pins `@angular/core ^22.1.0`).
+- **Docker**, running, for two things: a local **PostgreSQL** instance to run the backend against
+  (see step 1 below), and the backend's own test suite, which uses Testcontainers to spin up a
+  real (ephemeral) PostgreSQL per test class rather than mocking the database.
 - A **Fixer.io free-tier API key** ([fixer.io](https://fixer.io)) — read from an environment
   variable, never hardcoded (see below).
 - **[Ollama](https://ollama.com)** installed locally, for the AI trend insight — or any
@@ -36,14 +39,20 @@ build tooling between them:
 ### 1. Backend
 
 ```bash
+docker run --name exchange-postgres \
+  -e POSTGRES_DB=exchangedb -e POSTGRES_USER=exchange -e POSTGRES_PASSWORD=exchange \
+  -p 5432:5432 -d postgres:16
+
 cd backend
 export FIXER_API_KEY=your-fixer-io-key   # required — startup fails fast without it
-export SPRING_PROFILES_ACTIVE=dev        # enables schema auto-creation + DevDataSeeder
+export SPRING_PROFILES_ACTIVE=dev        # activates DevDataSeeder
 mvn spring-boot:run
 ```
 
-The `dev` profile (`application-dev.yml`) sets `spring.jpa.hibernate.ddl-auto=update` (a
-file-based H2 datasource has no schema-creation default of its own) and activates
+`application.yml`'s datasource defaults (`DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USERNAME`/`DB_PASSWORD`
+environment variables, all optional) match the `docker run` command above exactly — no extra
+configuration needed for a first run. Flyway (`backend/src/main/resources/db/migration/`) owns
+schema creation for every profile, including `dev`; the `dev` profile itself only activates
 `DevDataSeeder`, which idempotently seeds 7 days of the brief's EUR/PLN worked-example rates on
 every startup — safe to restart repeatedly, never duplicates rows — so the Calculator and
 Historical Trend views have real data to show without waiting on Fixer.io or the daily scheduler.
@@ -212,19 +221,23 @@ unsquashed history.
 
 ## Known Trade-offs
 
-- **H2, file-based, for local/dev/test** — not a production-grade setup; swapping in Postgres
-  would require rewriting `ExchangeRateRepository#upsert`'s native `MERGE` (H2-specific syntax,
-  not portable) and `CurrencyUsageRepository`'s native insert/update pair. Accepted since this
-  assessment only exercises one local datasource.
+- **PostgreSQL + Flyway, both local/dev/test and the intended production path** — Docker is now a
+  real local-dev and test-suite prerequisite: the backend datasource is PostgreSQL only (no H2
+  fallback), and the test suite uses Testcontainers (a real, ephemeral Postgres per test class)
+  rather than an in-memory substitute. `ExchangeRateRepository#upsert` uses Postgres's
+  `INSERT ... ON CONFLICT DO UPDATE`; schema is Flyway-migration-owned
+  (`backend/src/main/resources/db/migration/`) for every profile, not Hibernate `ddl-auto`.
 - **No charting library** (`SvgLineChartComponent`, the analytics bar chart) — a small hand-rolled
   SVG mapping function instead of ngx-charts/Chart.js/D3, per the brief's own "the chart does not
   need to be elaborate" and the constitution's Simplicity principle. See
   [`research.md` Decision 1](specs/001-exchange-rate-management/research.md).
-- **No distributed lock around the scheduled ingestion job** — the DB unique constraint + native
-  upsert already guarantees correct, non-duplicated *stored* data under multi-instance execution;
-  it does not also prevent multiple instances from each calling Fixer.io on the same day. Stored-
-  data correctness was treated as the hard requirement, provider-call efficiency as secondary (see
-  `plan.md`'s Complexity Tracking table).
+- **ShedLock guards the scheduled ingestion job against double-firing across instances** — a
+  JDBC-backed distributed lock (`net.javacrumbs.shedlock`) ensures only one instance's 00:05 GMT
+  trigger actually calls Fixer.io and ingests, even when multiple instances are pointed at the
+  same database. The DB unique constraint + upsert were already sufficient for *stored*-data
+  correctness on their own (multiple concurrent ingests of the same day can't corrupt data); the
+  lock's purpose is avoiding redundant Fixer.io calls, not a correctness requirement of last
+  resort.
 - **A curated ~42-code currency set, not the full ISO 4217 list** — sized to cover every Appendix B
   tier and the worked example, not exhaustive real-world coverage.
 - **No dedicated Angular e2e suite** (Cypress/Playwright) — component/unit tests plus the manual

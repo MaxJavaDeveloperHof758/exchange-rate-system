@@ -1,14 +1,7 @@
-# Local/reviewer profile only (quickstart.md). The default application.yml's
-# file-based H2 datasource has no schema-creation setting at all — Spring Boot
-# only auto-defaults ddl-auto to create-drop for a datasource it detects as
-# "embedded", and a file-based H2 URL doesn't qualify. Without this, a fresh
-# checkout's first run fails on the very first query with "Table not found",
-# before DevDataSeeder ever gets a chance to insert anything.
-#
-# "update" (not "create-drop"): this profile's data file is meant to persist
-# across restarts — DevDataSeeder's idempotent upsert already makes reruns
-# safe, so there is no need to drop and recreate the schema every startup.
-spring:
-  jpa:
-    hibernate:
-      ddl-auto: update
+# Local/reviewer profile only (quickstart.md). Schema creation is owned by
+# Flyway (db/migration) for every profile, including this one — this file no
+# longer needs its own ddl-auto override (it used to set "update" here to
+# work around the base H2 file-datasource having no schema-creation default
+# at all; PostgreSQL + Flyway made that problem, and this override, obsolete).
+# Kept as a profile file for DevDataSeeder's @Profile("dev") activation and
+# any future dev-only property.

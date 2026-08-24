@@ -11,11 +11,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
+import org.springframework.context.annotation.Import;
 
 import com.exchange.exchangeratesystem.currency.CurrencySpreadTestFixtures;
 import com.exchange.exchangeratesystem.error.RateNotAvailableException;
 import com.exchange.exchangeratesystem.rate.dto.HistoricalRatePoint;
 import com.exchange.exchangeratesystem.rate.dto.HistoryResponse;
+import com.exchange.exchangeratesystem.support.PostgresTestContainerConfig;
 
 /**
  * Covers the series-building logic previously duplicated between
@@ -27,6 +31,8 @@ import com.exchange.exchangeratesystem.rate.dto.HistoryResponse;
  * formula output.
  */
 @DataJpaTest
+@AutoConfigureTestDatabase(replace = Replace.NONE)
+@Import(PostgresTestContainerConfig.class)
 class HistoricalRateServiceTest {
 
     @Autowired

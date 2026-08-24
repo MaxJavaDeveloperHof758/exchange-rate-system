@@ -7,6 +7,11 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
+import org.springframework.context.annotation.Import;
+
+import com.exchange.exchangeratesystem.support.PostgresTestContainerConfig;
 
 /**
  * Confirms {@link CurrencyUsageRepository#decrementUsage} and
@@ -16,6 +21,8 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
  * real database, not just as mocked interactions.
  */
 @DataJpaTest
+@AutoConfigureTestDatabase(replace = Replace.NONE)
+@Import(PostgresTestContainerConfig.class)
 class CurrencyUsageRepositoryTest {
 
     @Autowired

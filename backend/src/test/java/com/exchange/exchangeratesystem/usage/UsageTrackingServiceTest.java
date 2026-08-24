@@ -14,6 +14,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+
+import com.exchange.exchangeratesystem.support.PostgresTestContainerConfig;
 
 /**
  * Deliberately NOT {@code @Transactional}/{@code @Rollback}: UsageTrackingService's
@@ -22,16 +25,18 @@ import org.springframework.boot.test.context.SpringBootTest;
  * connection. If this test class wrapped each test method in its own outer
  * transaction, pre-seeded data would be invisible to the concurrent threads'
  * separately-committing inner transactions under READ_COMMITTED isolation.
- * Isolation is achieved instead via an in-memory datasource scoped to this
- * test class and manual cleanup in {@link #cleanUp()}.
+ * Isolation is achieved instead via a dedicated Testcontainers Postgres
+ * scoped to this test class and manual cleanup in {@link #cleanUp()}.
+ *
+ * This class's 50-concurrent-thread test is the item's own explicit gate for
+ * the H2 → PostgreSQL migration: the counter-increment concurrency-safety
+ * design was proven against H2 (see the class Javadoc history), and must be
+ * re-proven here against a real Postgres instance, not assumed to transfer.
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
-        properties = {
-            "fixer.api-key=test-key",
-            "spring.datasource.url=jdbc:h2:mem:usage-tracking-service-test;DB_CLOSE_DELAY=-1",
-            "spring.jpa.hibernate.ddl-auto=create-drop"
-        })
+        properties = "fixer.api-key=test-key")
+@Import(PostgresTestContainerConfig.class)
 class UsageTrackingServiceTest {
 
     private static final int CONCURRENT_REQUESTS = 50;

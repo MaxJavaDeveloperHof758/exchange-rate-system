@@ -7,6 +7,9 @@ import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+
+import com.exchange.exchangeratesystem.support.PostgresTestContainerConfig;
 
 /**
  * Confirms {@code application.yml}'s {@code currency.spread.*} actually
@@ -21,11 +24,8 @@ import org.springframework.boot.test.context.SpringBootTest;
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
-        properties = {
-            "fixer.api-key=test-key",
-            "spring.datasource.url=jdbc:h2:mem:currency-spread-binding-test;DB_CLOSE_DELAY=-1",
-            "spring.jpa.hibernate.ddl-auto=create-drop"
-        })
+        properties = "fixer.api-key=test-key")
+@Import(PostgresTestContainerConfig.class)
 class CurrencySpreadPropertiesBindingTest {
 
     @Autowired

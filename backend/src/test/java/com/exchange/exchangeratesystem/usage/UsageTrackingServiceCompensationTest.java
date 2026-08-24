@@ -12,8 +12,11 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import com.exchange.exchangeratesystem.support.PostgresTestContainerConfig;
 
 /**
  * Confirms the cross-currency compensation UsageTrackingService's class
@@ -26,17 +29,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
  * so both currencies' outcomes are fully deterministic — PLN's every
  * attempt is made to lose the insert race, exhausting all 3 retries — while
  * {@code UsageTrackingService} still runs against a real
- * {@code PlatformTransactionManager} from a real (otherwise-unused) H2
- * context, exercising its actual transaction-template wiring rather than a
- * fully-mocked stand-in for it.
+ * {@code PlatformTransactionManager} from a real (otherwise-unused,
+ * Testcontainers-provided) Postgres context, exercising its actual
+ * transaction-template wiring rather than a fully-mocked stand-in for it.
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
-        properties = {
-            "fixer.api-key=test-key",
-            "spring.datasource.url=jdbc:h2:mem:usage-tracking-compensation-test;DB_CLOSE_DELAY=-1",
-            "spring.jpa.hibernate.ddl-auto=create-drop"
-        })
+        properties = "fixer.api-key=test-key")
+@Import(PostgresTestContainerConfig.class)
 class UsageTrackingServiceCompensationTest {
 
     @MockitoBean
