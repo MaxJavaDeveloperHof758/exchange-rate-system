@@ -23,12 +23,12 @@ export interface BarChartGeometry {
   height: number;
 }
 
-const BAR_HEIGHT = 20;
-const ROW_HEIGHT = 34;
+const BAR_HEIGHT = 28;
+const ROW_HEIGHT = 46;
 /** Reserved left column for the 3-letter currency code label. */
-const LABEL_WIDTH = 56;
+const LABEL_WIDTH = 60;
 /** Reserved right column for the "N queries · last YYYY-MM-DD" value text. */
-const VALUE_WIDTH = 160;
+const VALUE_WIDTH = 190;
 
 /**
  * Pure function mapping `topCurrencies` to horizontal-bar geometry —
@@ -93,8 +93,8 @@ export function mapEntriesToBarChart(
 export class AnalyticsDashboardComponent {
   private readonly analyticsService = inject(AnalyticsService);
 
-  protected readonly width = 640;
-  protected readonly padding = 16;
+  protected readonly width = 720;
+  protected readonly padding = 20;
 
   protected readonly loading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
