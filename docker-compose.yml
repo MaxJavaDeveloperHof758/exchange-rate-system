@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: exchangedb
+      POSTGRES_USER: exchange
+      POSTGRES_PASSWORD: exchange
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U exchange -d exchangedb"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    # No host port published deliberately - the backend reaches this over
+    # the compose-internal network by service name, and a locally-running
+    # Postgres on the host (a common setup) would otherwise silently win
+    # over Docker's own port-forwarding for anything connecting to
+    # localhost:5432, confirmed the hard way while building this project.
+
+  backend:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: exchangedb
+      DB_USERNAME: exchange
+      DB_PASSWORD: exchange
+      FIXER_API_KEY: ${FIXER_API_KEY}
+      FIXER_BASE_URL: ${FIXER_BASE_URL:-http://data.fixer.io/api}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      # The host's own Ollama, not a compose service (kept optional/external
+      # per the project's design - the AI insight endpoint degrades
+      # gracefully, 503, if it's unreachable). "localhost" inside a
+      # container means the container itself, not the host, hence
+      # host.docker.internal + the extra_hosts entry below (needed for
+      # Docker Engine on Linux; Docker Desktop provides it out of the box).
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+      FRONTEND_ORIGIN: http://localhost:4200
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "4200:80"

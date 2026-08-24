@@ -24,13 +24,13 @@ submission.
 integration test — see README) · `cd frontend && npx ng test --watch=false`. As of Item 6, `mvn
 verify` requires Docker running (Testcontainers spins up a real, ephemeral PostgreSQL per test
 class — see Item 6's writeup).
-**Current state**: 46/46 backend tests, 20/20 frontend tests, both green (Item 11 didn't touch
-either suite — docs/generated-artifact only). Items 6, 9, and 13 are committed (`03e904a`,
-`054bfec`, `dc47721`); Item 11 is done but **staged, not committed**.
+**Current state**: 46/46 backend tests, 20/20 frontend tests, both green (Items 10/11 didn't touch
+either suite — infra/docs/generated-artifact only). Items 6, 9, 11, and 13 are committed
+(`03e904a`, `054bfec`, `7ddc80a`, `dc47721`); Item 10 is done but **staged, not committed**.
 
 ---
 
-## Status: 12 of 13 items done
+## Status: 13 of 13 items done
 
 | # | Item | Status | Commit |
 |---|---|---|---|
@@ -43,10 +43,13 @@ either suite — docs/generated-artifact only). Items 6, 9, and 13 are committed
 | 7 | `/history` returns only the derived pair rate, not each currency's raw rate (FR-014) | ✅ Done | `7addfa4` |
 | 8 | `CurrencySpread`'s Appendix B table hardcoded, not externally configurable | ✅ Done | `489d707` |
 | 9 | Too much dev-process narrative in code comments; move decision history to ADRs | ✅ Done | `054bfec` |
-| 10 | *(optional)* docker-compose for one-command startup | ⬜ **Not started** | — |
-| 11 | *(optional)* commit a generated OpenAPI spec to the repo | ✅ Done | *(staged)* |
+| 10 | *(optional)* docker-compose for one-command startup | ✅ Done | *(staged)* |
+| 11 | *(optional)* commit a generated OpenAPI spec to the repo | ✅ Done | `7ddc80a` |
 | 12 | `toUpperCase()` should use `Locale.ROOT` | ✅ Done | `610c5e4` |
 | 13 | `CLAUDE.md` reads as a stale narrative snapshot, not durable working rules | ✅ Done | `dc47721` |
+
+All 13 items from the original feedback document are now done. Item 10 (optional, confirmed in
+scope) is the only one still staged rather than committed.
 
 (Items 10/11 are explicitly optional per the feedback document itself — the user confirmed doing
 both when asked, so they're "not started," not "declined.")
@@ -248,7 +251,7 @@ hardcoding "remaining work is T054–T058" as this file did before. Left "Implem
 historical-structure information that doesn't make a current-state claim liable to decay.
 Docs-only; no test re-run needed.
 
-### 11. Committed OpenAPI spec — *(staged, awaiting commit)*
+### 11. Committed OpenAPI spec — `7ddc80a`
 Chose the lower-effort of the two options the item itself named: fetched the live
 `/v3/api-docs` JSON from a real running instance and committed the pretty-printed snapshot at
 `docs/openapi.json`, rather than wiring a Maven plugin to regenerate it on every build. The
@@ -265,32 +268,67 @@ with no error, but the app then hits the wrong database entirely (confirmed via 
 showing both bound). Same workaround as item 6's manual verification: map the container to
 5433 instead of touching the user's own, unrelated Postgres service.
 
----
-
-## What's left
-
-### 10. docker-compose for one-command startup
-Confirmed in scope ("do both") but not started. Needs Dockerfiles for both `backend/` and
-`frontend/` plus a compose file wiring them together (and probably Ollama, if it's meant to be
-one-command-complete).
+### 10. docker-compose for one-command startup — *(staged, awaiting commit; last item)*
+Multi-stage `backend/Dockerfile` (`maven:3.9-eclipse-temurin-25` build stage with a
+dependency-layer-cache step, `eclipse-temurin:25-jre-alpine` runtime — tests skipped at image-build
+time, same reasoning as every other item: they need Testcontainers/a Docker socket the build
+sandbox doesn't have, and already run separately via `mvn verify`) and `frontend/Dockerfile`
+(`node:24-alpine` build stage, `nginx:alpine` runtime with an SPA-fallback `nginx.conf` — no Node
+needed at runtime, confirmed no `@angular/ssr`/`server.ts` exist anywhere). Root
+`docker-compose.yml` wires `postgres` + `backend` + `frontend`, plus a root `.env.example`.
+Followed the two decisions the user made before this item's plan was finalized: nginx (not a Node
+server) for the frontend, and Ollama stays a separate host prerequisite rather than a compose
+service.
+Two real, non-obvious things surfaced and resolved during design/verification, not assumed away:
+- **The frontend's backend API URL is baked in at build time** (`environment.ts`, no runtime
+  config mechanism exists). Reasoned through rather than worked around: since this is a
+  client-side SPA, the *browser* makes the API call, not any container — so as long as the
+  backend's port 8080 is published to the host (same as the existing manual setup), the existing
+  baked-in `http://localhost:8080/api` keeps working completely unchanged. No build-arg, no
+  `envsubst` trick, no source change needed.
+- **Postgres's container port is deliberately NOT published to the host** in compose (unlike the
+  README's standalone `docker run` command) — the backend reaches it over the compose-internal
+  network by service name instead. This sidesteps, for good, the exact conflict items 6/11 hit
+  personally on this machine (a local Homebrew Postgres bound to `127.0.0.1:5432` silently winning
+  over Docker's port-forwarding for anything on `localhost:5432`).
+- A `pg_isready` `healthcheck` + `depends_on: condition: service_healthy` on the backend avoids a
+  race this session already hit manually once (a container reporting "started" well before Postgres
+  is actually ready to accept connections).
+- Reaching the host's own natively-run Ollama from inside the backend container needs
+  `host.docker.internal` (not `localhost`, which means the container itself) — wired via
+  `OLLAMA_BASE_URL` plus an `extra_hosts: host.docker.internal:host-gateway` entry, the latter
+  needed for Linux Docker Engine compatibility (Docker Desktop provides it automatically).
+Verified for real, not just "containers report healthy": ran `docker compose up --build` end to
+end, confirmed via logs that Flyway migrated against the `postgres` *service* (not a stray local
+instance), then drove the actual Calculator view in a real browser at `localhost:4200` — a genuine
+cross-origin fetch to `localhost:8080` succeeded (CORS working), returned dev-seeded data, and
+incremented the usage counter — and separately confirmed nginx's SPA fallback with a direct
+(non-client-routed) `GET /analytics` returning `200` with `index.html`, not a 404.
+Incidental cleanup: deleted a stale, gitignored `backend/data/exchangedb.mv.db` left over from
+before the Postgres migration — dead weight now that H2 is gone entirely from the stack.
+README updated with a new "one-command startup" section (kept as an alternative alongside the
+existing manual steps, not a replacement, per the item's own framing) and a repository-layout
+tree entry; root `.gitignore` gained a `.env` entry so a real `FIXER_API_KEY` never risks getting
+committed.
 
 ---
 
 ## Notes for a continuation session
 
-- Everything through Item 13 except Item 10 (optional, not started) is either committed on
-  `fix/adjustments` or staged awaiting commit — see the status table's Commit column for exactly
-  which. Item 11 (committed OpenAPI spec) is done and verified but **staged, not committed** —
-  this session's own rule (never commit unprompted) applies same as every other item.
-- The user has been committing manually after each item — this session never ran `git commit`
-  itself, only proposed messages.
-- **Docker is now a real prerequisite**, for local dev (a `postgres:16` container — see README)
-  and for the backend test suite (Testcontainers spins up a real Postgres per test class). A
-  continuation session needs Docker running before `mvn verify` will pass at all — it fails
-  outright, not gracefully, without it.
-- Item 6 (Postgres) was backend/infra-only, as expected. Item 9 touched both stacks (task-ID
-  citations existed in frontend `.ts` comments too, not just backend Java) but only comments/docs
-  — no behavior change either side. Item 13 remains docs-only. Item 10 (docker-compose) touches
-  build/deploy tooling for both, not application code in either.
-- New file: `docs/architecture-decisions.md` (2 ADRs so far) — Item 13's `CLAUDE.md` rewrite
-  should probably link to it rather than duplicate any of its content.
+All 13 items are done. Item 10 (this session's last piece of work) is staged, not committed —
+the user has been committing manually after each item throughout this effort, and this session
+never ran `git commit` itself, only proposed messages; that's the only thing left for a
+continuation session to do here, not further implementation work from this feedback document.
+
+- **Docker is now a real prerequisite** for this project generally, not just for Item 10's
+  compose file: local dev needs a Postgres instance (`docker run postgres:16`, or
+  `docker compose up`), and the backend test suite needs Docker running for Testcontainers —
+  `mvn verify` fails outright, not gracefully, without it.
+- New durable references worth knowing about for anything *after* this list: `docs/
+  architecture-decisions.md` (2 ADRs) is where decision history now lives instead of narrated
+  code comments (Item 9); `docs/openapi.json` (Item 11) is a point-in-time API snapshot, not
+  auto-synced; `CLAUDE.md` (Item 13) now points at both, and at this file's own status table, as
+  the way to find out what's actually true rather than trusting a hardcoded snapshot anywhere.
+- If new post-submission work comes in later, it almost certainly deserves its own section here
+  (or a fresh log, if this one is judged long enough to retire) rather than silently reopening a
+  "done" item above.

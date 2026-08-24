@@ -13,12 +13,15 @@ build tooling between them:
 
 ```text
 .
-├── backend/    # Spring Boot API (Java 25, Maven) — see backend/pom.xml
-├── frontend/   # Angular SPA (Angular 22, TypeScript)
-├── specs/      # Spec Kit feature spec, plan, tasks, contracts, quickstart, validation checklist
-│                 → specs/001-exchange-rate-management/
-├── .specify/   # Spec Kit configuration, templates, and this project's constitution
-└── .claude/    # Claude Code / Spec Kit AI tool configuration — see "AI Workflow" below
+├── backend/            # Spring Boot API (Java 25, Maven) — see backend/pom.xml
+│                         (own Dockerfile inside)
+├── frontend/           # Angular SPA (Angular 22, TypeScript) — own Dockerfile inside
+├── docker-compose.yml  # One-command startup (backend + frontend + Postgres) — optional
+├── docs/               # architecture-decisions.md (ADRs), openapi.json (a generated snapshot)
+├── specs/              # Spec Kit feature spec, plan, tasks, contracts, quickstart, validation
+│                         checklist → specs/001-exchange-rate-management/
+├── .specify/           # Spec Kit configuration, templates, and this project's constitution
+└── .claude/            # Claude Code / Spec Kit AI tool configuration — see "AI Workflow" below
 ```
 
 ## Prerequisites
@@ -35,6 +38,23 @@ build tooling between them:
   OpenAI-compatible endpoint, by pointing the same two properties (below) at it instead.
 
 ## Setup & Run
+
+### 0. One-command startup (docker compose, optional)
+
+An alternative to the manual steps below — builds and runs Postgres, the backend, and the
+frontend together:
+
+```bash
+cp .env.example .env   # then fill in FIXER_API_KEY
+docker compose up --build
+```
+
+Frontend: `http://localhost:4200`. Backend: `http://localhost:8080` (Swagger UI included) — the
+same ports as the manual setup below, so nothing about the "normal" URLs changes. Ollama is
+deliberately **not** a compose service — it stays a separate host-level prerequisite (see below);
+the backend reaches a natively-running Ollama via Docker's `host.docker.internal`, which
+`docker-compose.yml` already wires up. If Ollama isn't running, the AI insight endpoint degrades
+gracefully (`503`) exactly as it does outside compose too.
 
 ### 1. Backend
 

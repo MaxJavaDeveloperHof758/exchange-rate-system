@@ -44,3 +44,6 @@ node_modules/
 *.log
 backend/target/backend/data/
 backend/data/
+
+### docker-compose local env (real secrets, never commit) ###
+.env
