@@ -77,4 +77,42 @@ public interface CurrencyUsageRepository extends JpaRepository<CurrencyUsage, St
     void insertNewRow(
             @Param("currencyCode") String currencyCode,
             @Param("queriedDate") LocalDate queriedDate);
+
+    /**
+     * The exact inverse of {@link #incrementUsage} — used only by
+     * {@code UsageTrackingService} to compensate a currency whose count it
+     * already incremented, when a pair lookup's other currency then fails.
+     * Equally atomic and concurrency-safe: a relative {@code -1} composes
+     * correctly with any other request's concurrent increment/decrement of
+     * the same currency, the same way {@code incrementUsage}'s relative
+     * {@code +1} does. Never produces a negative count: the only caller
+     * always decrements a currency it just incremented by exactly 1 moments
+     * earlier, so the row's count is always >= 1 at this point.
+     */
+    @Modifying
+    @Transactional
+    @Query(value = """
+            UPDATE currency_usage
+            SET query_count = query_count - 1
+            WHERE currency_code = :currencyCode
+            """, nativeQuery = true)
+    int decrementUsage(@Param("currencyCode") String currencyCode);
+
+    /**
+     * Cleans up a currency's row after {@link #decrementUsage} compensated
+     * away its very first-ever (and, so far, only) recorded lookup, so a
+     * fully-compensated pair lookup doesn't leave a lingering
+     * {@code query_count = 0} row — contracts/analytics.md is explicit that
+     * a currency never successfully queried must not appear in
+     * {@code /api/analytics} at all, not appear with a count of zero.
+     * {@code WHERE query_count = 0} is evaluated atomically against the
+     * row's live state, so if another request concurrently incremented this
+     * same currency again in between, this simply deletes nothing — that
+     * request's own count is left correctly intact.
+     */
+    @Modifying
+    @Transactional
+    @Query(value = "DELETE FROM currency_usage WHERE currency_code = :currencyCode AND query_count = 0",
+            nativeQuery = true)
+    void deleteIfZeroCount(@Param("currencyCode") String currencyCode);
 }
