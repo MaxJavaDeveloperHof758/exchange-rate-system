@@ -2,7 +2,7 @@ form {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .field {
@@ -50,7 +50,7 @@ button {
 .panels {
   display: flex;
   flex-wrap: wrap;
-  gap: 2rem;
+  gap: 1.5rem;
   margin-top: 1.5rem;
 }
 
@@ -58,4 +58,10 @@ button {
 .chart-panel,
 .insight-section {
   flex: 1 1 20rem;
+  padding: 1rem 1.25rem;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  background-color: #fff;
 }
