@@ -1,0 +1,636 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Exchange Rate Management System API",
+    "description": "Spread-adjusted exchange rate calculator, historical rate and usage analytics, and AI-generated trend insight endpoints.",
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Exchange Rate",
+      "description": "Spread-adjusted rate calculator, historical rate lookups, and manual ingestion refresh — contracts/exchange.md."
+    },
+    {
+      "name": "Trend Insight",
+      "description": "AI-generated commentary on a currency pair's rate movement over a date range, grounded in the real stored series — contracts/insight.md."
+    },
+    {
+      "name": "Analytics",
+      "description": "Usage statistics across all currencies ever queried — contracts/analytics.md."
+    }
+  ],
+  "paths": {
+    "/api/exchange/refresh": {
+      "post": {
+        "tags": [
+          "Exchange Rate"
+        ],
+        "summary": "Manually trigger an out-of-schedule ingestion run (optional, FR-022)",
+        "description": "Reuses the exact same idempotent upsert path as the daily scheduled job. MUST NOT read or write any Currency Usage Counter row under any outcome.",
+        "operationId": "refresh",
+        "responses": {
+          "502": {
+            "description": "The upstream provider (Fixer.io) call failed.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "UPSTREAM_FETCH_FAILED",
+                  "message": "Manual refresh failed: Fixer.io /latest was unreachable"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Ingestion ran to completion.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exchange": {
+      "get": {
+        "tags": [
+          "Exchange Rate"
+        ],
+        "summary": "Get the spread-adjusted exchange rate for a currency pair",
+        "description": "Uses only locally stored data. If `date` is omitted, the most recent date with stored data for both currencies is used (FR-008). A same-currency pair (from == to) always returns exchange: 1 with no spread applied, and still increments that currency's usage counter once (FR-011).",
+        "operationId": "getExchangeRate",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Source currency code.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "EUR"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Target currency code.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "PLN"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Rate date (YYYY-MM-DD). If omitted, the most recent date with stored data for both currencies is used.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2024-03-15"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The spread-adjusted rate, with each currency's post-increment usage count.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExchangeRateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No stored rate exists for one or both currencies on the resolved date (FR-009).",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "RATE_NOT_AVAILABLE",
+                  "message": "No rate data available for EUR/PLN on 2024-03-15"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`from`/`to` is not a recognized currency code, or `date` is malformed (FR-010).",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "UNKNOWN_CURRENCY": {
+                    "description": "UNKNOWN_CURRENCY",
+                    "value": {
+                      "error": "UNKNOWN_CURRENCY",
+                      "message": "Unknown currency code: XXX"
+                    }
+                  },
+                  "INVALID_DATE_FORMAT": {
+                    "description": "INVALID_DATE_FORMAT",
+                    "value": {
+                      "error": "INVALID_DATE_FORMAT",
+                      "message": "Invalid value for parameter 'date': not-a-date"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exchange/insight": {
+      "get": {
+        "tags": [
+          "Trend Insight"
+        ],
+        "summary": "Get an AI-generated trend commentary for a currency pair's rate movement",
+        "description": "Grounds the model in the exact same (date, rate) series GET /api/exchange/history would return for this from/to/fromDate/toDate (constitution Principle X) — never a generic or templated response. A single-day range (fromDate == toDate) is described as one observation, not a multi-day trend. Has no side effects on usage counters and is not cached or persisted server-side.",
+        "operationId": "getInsight",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Source currency code.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "EUR"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Target currency code.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "GBP"
+          },
+          {
+            "name": "fromDate",
+            "in": "query",
+            "description": "Inclusive start of the date range.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2024-02-01"
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "description": "Inclusive end of the date range.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2024-03-01"
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Unknown currency code, malformed date, or fromDate after toDate.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "UNKNOWN_CURRENCY": {
+                    "description": "UNKNOWN_CURRENCY",
+                    "value": {
+                      "error": "UNKNOWN_CURRENCY",
+                      "message": "Unknown currency code: XXX"
+                    }
+                  },
+                  "INVALID_DATE_FORMAT": {
+                    "description": "INVALID_DATE_FORMAT",
+                    "value": {
+                      "error": "INVALID_DATE_FORMAT",
+                      "message": "Invalid value for parameter 'fromDate': not-a-date"
+                    }
+                  },
+                  "INVALID_DATE_RANGE": {
+                    "description": "INVALID_DATE_RANGE",
+                    "value": {
+                      "error": "INVALID_DATE_RANGE",
+                      "message": "fromDate 2024-03-15 is after toDate 2024-03-01"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "The generated trend commentary.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsightResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No stored rate data exists anywhere in the requested range — nothing to summarize.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "RATE_NOT_AVAILABLE",
+                  "message": "No rate data available for EUR/PLN between 2024-02-01 and 2024-03-01"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The local LLM call failed or timed out (model not running, connection refused, etc.). The rate data itself is unaffected and remains available via /api/exchange/history.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "INSIGHT_UNAVAILABLE",
+                  "message": "The trend insight could not be generated. The rate data itself is still available via /api/exchange/history."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exchange/history": {
+      "get": {
+        "tags": [
+          "Exchange Rate"
+        ],
+        "summary": "Get raw stored rates for a currency pair over a date range",
+        "description": "Returns the spread-adjusted rate for every date in [startDate, endDate] that has usable stored data for both currencies; dates with no usable data are listed in `missingDates` instead of causing a failure — a partially incomplete range is still a 200 (User Story 2, Acceptance Scenario 5). Does not increment usage counters — usage tracking is scoped to single-pair /api/exchange lookups only.",
+        "operationId": "getHistory",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Source currency code.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "EUR"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Target currency code.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "PLN"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Inclusive start of the date range.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2024-03-01"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Inclusive end of the date range.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2024-03-15"
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Zero usable data points exist anywhere in the requested range.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "RATE_NOT_AVAILABLE",
+                  "message": "No rate data available for EUR/PLN between 2024-03-01 and 2024-03-15"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown currency code, malformed date, or startDate after endDate.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "UNKNOWN_CURRENCY": {
+                    "description": "UNKNOWN_CURRENCY",
+                    "value": {
+                      "error": "UNKNOWN_CURRENCY",
+                      "message": "Unknown currency code: XXX"
+                    }
+                  },
+                  "INVALID_DATE_FORMAT": {
+                    "description": "INVALID_DATE_FORMAT",
+                    "value": {
+                      "error": "INVALID_DATE_FORMAT",
+                      "message": "Invalid value for parameter 'startDate': not-a-date"
+                    }
+                  },
+                  "INVALID_DATE_RANGE": {
+                    "description": "INVALID_DATE_RANGE",
+                    "value": {
+                      "error": "INVALID_DATE_RANGE",
+                      "message": "startDate 2024-03-15 is after endDate 2024-03-01"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "The raw rates found, plus any dates with no usable data.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Get usage statistics for every currency ever queried",
+        "description": "Read-only — viewing analytics never itself counts as a query (FR-011's scope is /api/exchange lookups only). A currency never queried does not appear in the list at all; an empty list is returned (never 404) when no lookups have occurred yet.",
+        "operationId": "getAnalytics",
+        "responses": {
+          "200": {
+            "description": "Usage statistics, sorted by totalCount descending.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Machine-readable error code.",
+            "example": "UNKNOWN_CURRENCY"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable detail for this specific occurrence.",
+            "example": "Unknown currency code: XXX"
+          }
+        }
+      },
+      "RefreshResponse": {
+        "type": "object",
+        "properties": {
+          "triggeredAt": {
+            "type": "string",
+            "description": "When this manual ingestion run was triggered.",
+            "format": "date-time",
+            "example": "2026-08-21T10:15:00Z"
+          },
+          "status": {
+            "type": "string",
+            "description": "Always \"COMPLETED\" on a 202 response.",
+            "example": "COMPLETED"
+          }
+        }
+      },
+      "ExchangeRateResponse": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Source currency code.",
+            "example": "EUR"
+          },
+          "to": {
+            "type": "string",
+            "description": "Target currency code.",
+            "example": "PLN"
+          },
+          "exchange": {
+            "type": "number",
+            "description": "The spread-adjusted rate: 1 unit of `from` converts to this many units of `to`. Always exactly 1 for a same-currency pair.",
+            "example": 4.440548756541325
+          },
+          "date": {
+            "type": "string",
+            "description": "The rate date actually used — either the requested `date` or, if omitted, the most recent date with stored data for both currencies.",
+            "format": "date",
+            "example": "2024-03-15"
+          },
+          "fromQueryCount": {
+            "type": "integer",
+            "description": "`from`'s running usage count, including this lookup.",
+            "format": "int64",
+            "example": 142
+          },
+          "toQueryCount": {
+            "type": "integer",
+            "description": "`to`'s running usage count, including this lookup.",
+            "format": "int64",
+            "example": 37
+          }
+        }
+      },
+      "InsightResponse": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Source currency code.",
+            "example": "EUR"
+          },
+          "to": {
+            "type": "string",
+            "description": "Target currency code.",
+            "example": "GBP"
+          },
+          "fromDate": {
+            "type": "string",
+            "description": "Inclusive start of the summarized date range.",
+            "format": "date",
+            "example": "2024-02-01"
+          },
+          "toDate": {
+            "type": "string",
+            "description": "Inclusive end of the summarized date range.",
+            "format": "date",
+            "example": "2024-03-01"
+          },
+          "insight": {
+            "type": "string",
+            "description": "The AI-generated commentary, grounded in the actual stored rate series for this exact pair and range.",
+            "example": "EUR/GBP softened by approximately 1.8% over this period, with the steepest decline in the final week of February."
+          }
+        }
+      },
+      "HistoricalRatePoint": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "The date this rate applies to.",
+            "format": "date",
+            "example": "2024-03-01"
+          },
+          "fromRateToUsd": {
+            "type": "number",
+            "description": "The source currency's own raw rate-to-USD as actually stored for this date. Null for a same-currency pair (no lookup is performed).",
+            "example": 0.8
+          },
+          "toRateToUsd": {
+            "type": "number",
+            "description": "The target currency's own raw rate-to-USD as actually stored for this date. Null for a same-currency pair (no lookup is performed).",
+            "example": 3.7
+          },
+          "adjustedRate": {
+            "type": "number",
+            "description": "The spread-adjusted pair rate on this date.",
+            "example": 4.41
+          }
+        },
+        "description": "One entry per date a rate could be computed for."
+      },
+      "HistoryResponse": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Source currency code.",
+            "example": "EUR"
+          },
+          "to": {
+            "type": "string",
+            "description": "Target currency code.",
+            "example": "PLN"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Inclusive start of the requested range.",
+            "format": "date",
+            "example": "2024-03-01"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Inclusive end of the requested range.",
+            "format": "date",
+            "example": "2024-03-15"
+          },
+          "points": {
+            "type": "array",
+            "description": "One entry per date a rate could be computed for.",
+            "items": {
+              "$ref": "#/components/schemas/HistoricalRatePoint"
+            }
+          },
+          "missingDates": {
+            "type": "array",
+            "description": "Dates within the range with no usable stored data for one or both currencies.",
+            "example": [
+              "2024-03-03"
+            ],
+            "items": {
+              "type": "string",
+              "description": "Dates within the range with no usable stored data for one or both currencies.",
+              "format": "date"
+            }
+          }
+        }
+      },
+      "AnalyticsResponse": {
+        "type": "object",
+        "properties": {
+          "topCurrencies": {
+            "type": "array",
+            "description": "Every currency ever queried, sorted by totalCount descending. Empty (never 404) if no lookups have occurred yet. A currency never queried does not appear at all.",
+            "items": {
+              "$ref": "#/components/schemas/CurrencyUsageEntry"
+            }
+          }
+        }
+      },
+      "CurrencyUsageEntry": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "description": "The currency this row's counts are for.",
+            "example": "EUR"
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "Total number of successful /api/exchange lookups this currency has participated in, on either side of the pair.",
+            "format": "int64",
+            "example": 142
+          },
+          "lastQueried": {
+            "type": "string",
+            "description": "The most recent date this currency was involved in a successful lookup.",
+            "format": "date",
+            "example": "2024-03-15"
+          }
+        },
+        "description": "Every currency ever queried, sorted by totalCount descending. Empty (never 404) if no lookups have occurred yet. A currency never queried does not appear at all."
+      }
+    }
+  }
+}

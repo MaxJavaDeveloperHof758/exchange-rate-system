@@ -24,13 +24,13 @@ submission.
 integration test — see README) · `cd frontend && npx ng test --watch=false`. As of Item 6, `mvn
 verify` requires Docker running (Testcontainers spins up a real, ephemeral PostgreSQL per test
 class — see Item 6's writeup).
-**Current state**: 46/46 backend tests, 20/20 frontend tests, both green. Items 6 and 9 are
-committed (`03e904a`, `054bfec`); Item 13 is done but **staged, not committed**. Item 13 is
-docs-only (`CLAUDE.md`), so no test re-run was needed for it.
+**Current state**: 46/46 backend tests, 20/20 frontend tests, both green (Item 11 didn't touch
+either suite — docs/generated-artifact only). Items 6, 9, and 13 are committed (`03e904a`,
+`054bfec`, `dc47721`); Item 11 is done but **staged, not committed**.
 
 ---
 
-## Status: 11 of 13 items done
+## Status: 12 of 13 items done
 
 | # | Item | Status | Commit |
 |---|---|---|---|
@@ -44,9 +44,9 @@ docs-only (`CLAUDE.md`), so no test re-run was needed for it.
 | 8 | `CurrencySpread`'s Appendix B table hardcoded, not externally configurable | ✅ Done | `489d707` |
 | 9 | Too much dev-process narrative in code comments; move decision history to ADRs | ✅ Done | `054bfec` |
 | 10 | *(optional)* docker-compose for one-command startup | ⬜ **Not started** | — |
-| 11 | *(optional)* commit a generated OpenAPI spec to the repo | ⬜ **Not started** | — |
+| 11 | *(optional)* commit a generated OpenAPI spec to the repo | ✅ Done | *(staged)* |
 | 12 | `toUpperCase()` should use `Locale.ROOT` | ✅ Done | `610c5e4` |
-| 13 | `CLAUDE.md` reads as a stale narrative snapshot, not durable working rules | ✅ Done | *(staged)* |
+| 13 | `CLAUDE.md` reads as a stale narrative snapshot, not durable working rules | ✅ Done | `dc47721` |
 
 (Items 10/11 are explicitly optional per the feedback document itself — the user confirmed doing
 both when asked, so they're "not started," not "declined.")
@@ -234,7 +234,7 @@ while removing that comment's task-ID citations, not left to bit-rot further.
 Full `mvn verify` (46/46) and `ng test` (20/20) re-run after the sweep — comment-only changes, but
 worth confirming nothing was accidentally altered across ~27 touched files.
 
-### 13. `CLAUDE.md` rewrite — *(staged, awaiting commit)*
+### 13. `CLAUDE.md` rewrite — `dc47721`
 Replaced the "Current repository state" section (a dated snapshot claiming "T056–T058 remain" and
 describing only the original build — itself already stale, since it said nothing about this whole
 post-submission effort or the Postgres migration) with a "Finding out what's actually true right
@@ -248,25 +248,40 @@ hardcoding "remaining work is T054–T058" as this file did before. Left "Implem
 historical-structure information that doesn't make a current-state claim liable to decay.
 Docs-only; no test re-run needed.
 
+### 11. Committed OpenAPI spec — *(staged, awaiting commit)*
+Chose the lower-effort of the two options the item itself named: fetched the live
+`/v3/api-docs` JSON from a real running instance and committed the pretty-printed snapshot at
+`docs/openapi.json`, rather than wiring a Maven plugin to regenerate it on every build. The
+build-time-generation alternative was considered and rejected: `springdoc-openapi-maven-plugin`
+needs to actually boot the Spring context to introspect it, which would make every `mvn package`
+depend on a live Postgres connection — a real cost for a "nice to have" artifact, and in tension
+with the Simplicity principle. README now points at the file and is explicit that it's a
+point-in-time snapshot, not auto-synced — the live `/v3/api-docs`/Swagger UI is the actual source
+of truth if the two drift apart.
+Hit a real, non-obvious environment issue while fetching it: this machine already runs a local
+Homebrew PostgreSQL bound to `127.0.0.1:5432`, which silently wins over Docker's port-forwarding
+proxy for any app connecting to `localhost:5432` — `docker run -p 5432:5432 postgres:16` succeeds
+with no error, but the app then hits the wrong database entirely (confirmed via `lsof -iTCP:5432`
+showing both bound). Same workaround as item 6's manual verification: map the container to
+5433 instead of touching the user's own, unrelated Postgres service.
+
 ---
 
 ## What's left
 
-### 10/11. Optional: docker-compose + committed OpenAPI spec
-Both confirmed in scope ("do both") but not started. docker-compose needs Dockerfiles for both
-`backend/` and `frontend/` plus a compose file wiring them together (and probably Ollama, if it's
-meant to be one-command-complete). The OpenAPI spec is lower effort — springdoc already exposes
-`/v3/api-docs`; this is just fetching that (with the app running) and committing the JSON/YAML,
-or wiring a Maven plugin to generate it at build time.
+### 10. docker-compose for one-command startup
+Confirmed in scope ("do both") but not started. Needs Dockerfiles for both `backend/` and
+`frontend/` plus a compose file wiring them together (and probably Ollama, if it's meant to be
+one-command-complete).
 
 ---
 
 ## Notes for a continuation session
 
-- Everything through Item 12 except Items 10/11 (optional, not started) is either committed on
+- Everything through Item 13 except Item 10 (optional, not started) is either committed on
   `fix/adjustments` or staged awaiting commit — see the status table's Commit column for exactly
-  which. Item 13 (`CLAUDE.md` rewrite) is done and verified but **staged, not committed** — this
-  session's own rule (never commit unprompted) applies same as every other item.
+  which. Item 11 (committed OpenAPI spec) is done and verified but **staged, not committed** —
+  this session's own rule (never commit unprompted) applies same as every other item.
 - The user has been committing manually after each item — this session never ran `git commit`
   itself, only proposed messages.
 - **Docker is now a real prerequisite**, for local dev (a `postgres:16` container — see README)

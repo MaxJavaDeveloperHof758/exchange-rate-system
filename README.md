@@ -58,6 +58,10 @@ every startup — safe to restart repeatedly, never duplicates rows — so the C
 Historical Trend views have real data to show without waiting on Fixer.io or the daily scheduler.
 
 The backend starts on `http://localhost:8080`. Swagger UI: `http://localhost:8080/swagger-ui/index.html`.
+A generated snapshot of the same OpenAPI 3.0 document is committed at
+[`docs/openapi.json`](docs/openapi.json) — a point-in-time export (fetched from `/v3/api-docs`
+against a running instance), not something regenerated automatically on every build; the live
+`/v3/api-docs`/Swagger UI is the actual source of truth if the two ever diverge.
 
 **Local AI model (Ollama)**:
 
