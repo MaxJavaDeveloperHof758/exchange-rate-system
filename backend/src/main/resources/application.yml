@@ -9,6 +9,14 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password: ""
+  sql:
+    init:
+      # Spring Boot only auto-runs schema.sql for a datasource it detects as
+      # "embedded" (in-memory H2/HSQL/Derby) - the same reason ddl-auto has
+      # no default for this file-based H2 URL (see application-dev.yml).
+      # schema.sql (ShedLock's lock table) needs to run regardless of that
+      # detection, on every profile including this file-based one.
+      mode: always
   ai:
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}

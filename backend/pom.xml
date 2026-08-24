@@ -27,6 +27,7 @@
             4.1.1) — matching this project's Boot 4.1.0 parent; 1.x targets Boot 3.x.
         -->
         <spring-ai.version>2.0.1</spring-ai.version>
+        <shedlock.version>7.9.0</shedlock.version>
     </properties>
 
     <dependencies>
@@ -69,6 +70,26 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webflux</artifactId>
+        </dependency>
+        <!--
+            Distributed lock around the daily ingestion scheduler so that
+            running more than one instance of this application against the
+            same database only ever executes the 00:05 GMT job on one node
+            per firing (SchedulingConfig/RateIngestionScheduler). 7.9.0 is
+            the line with published Spring Boot 4 / Spring Framework 7
+            compatibility. shedlock-provider-jdbc-template needs only a
+            plain javax.sql.DataSource + JdbcTemplate, both already on the
+            classpath via spring-boot-starter-data-jpa.
+        -->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+            <version>${shedlock.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-jdbc-template</artifactId>
+            <version>${shedlock.version}</version>
         </dependency>
         <!--
             T033: Spring AI's Ollama chat-model starter (plan.md's fixed AI stack —
