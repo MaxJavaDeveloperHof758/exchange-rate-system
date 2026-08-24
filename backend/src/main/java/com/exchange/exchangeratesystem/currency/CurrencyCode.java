@@ -1,5 +1,6 @@
 package com.exchange.exchangeratesystem.currency;
 
+import java.util.Locale;
 import java.util.Set;
 
 import org.springframework.stereotype.Component;
@@ -40,6 +41,6 @@ public class CurrencyCode {
         if (code == null) {
             return false;
         }
-        return SUPPORTED_CODES.contains(code.toUpperCase());
+        return SUPPORTED_CODES.contains(code.toUpperCase(Locale.ROOT));
     }
 }

@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import com.exchange.exchangeratesystem.currency.CurrencyCode;
@@ -136,8 +137,8 @@ public class ExchangeRateController {
                     example = "2024-03-15")
                     @RequestParam(required = false)
                     LocalDate date) {
-        String fromCode = from.toUpperCase();
-        String toCode = to.toUpperCase();
+        String fromCode = from.toUpperCase(Locale.ROOT);
+        String toCode = to.toUpperCase(Locale.ROOT);
         validateCurrency(fromCode);
         validateCurrency(toCode);
 
@@ -238,8 +239,8 @@ public class ExchangeRateController {
                     required = true)
                     @RequestParam
                     LocalDate endDate) {
-        String fromCode = from.toUpperCase();
-        String toCode = to.toUpperCase();
+        String fromCode = from.toUpperCase(Locale.ROOT);
+        String toCode = to.toUpperCase(Locale.ROOT);
         validateCurrency(fromCode);
         validateCurrency(toCode);
         if (startDate.isAfter(endDate)) {

@@ -2,6 +2,7 @@ package com.exchange.exchangeratesystem.web;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 import com.exchange.exchangeratesystem.currency.CurrencyCode;
@@ -140,8 +141,8 @@ public class InsightController {
                     required = true)
                     @RequestParam
                     LocalDate toDate) {
-        String fromCode = from.toUpperCase();
-        String toCode = to.toUpperCase();
+        String fromCode = from.toUpperCase(Locale.ROOT);
+        String toCode = to.toUpperCase(Locale.ROOT);
         validateCurrency(fromCode);
         validateCurrency(toCode);
         if (fromDate.isAfter(toDate)) {

@@ -1,6 +1,7 @@
 package com.exchange.exchangeratesystem.currency;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.Set;
 
 import org.springframework.stereotype.Component;
@@ -38,7 +39,7 @@ public class CurrencySpread {
      * this lookup's.
      */
     public BigDecimal spreadFor(String currencyCode) {
-        String code = currencyCode.toUpperCase();
+        String code = currencyCode.toUpperCase(Locale.ROOT);
 
         if (BASE_CURRENCY.equals(code)) {
             return BASE_CURRENCY_SPREAD;
