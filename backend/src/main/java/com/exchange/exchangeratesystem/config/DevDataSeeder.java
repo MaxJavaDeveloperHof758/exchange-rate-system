@@ -10,13 +10,13 @@ import org.springframework.stereotype.Component;
 import com.exchange.exchangeratesystem.rate.ExchangeRateRepository;
 
 /**
- * T031: pre-populates the brief's EUR/PLN worked-example rates (Section 6.2)
+ * Pre-populates the brief's EUR/PLN worked-example rates (Section 6.2)
  * for the last {@value #SEED_DAYS} days, "dev"-profile only, so
  * quickstart.md's steps are runnable without waiting on the 12:05 AM GMT
  * scheduler (FR-001) or spending a real Fixer.io call, and so the Historical
  * Trend view has more than a single day to plot on first run. Uses the same
- * idempotent upsert the real ingestion path uses (T010/research.md Decision
- * 3), so restarting the app never duplicates rows or fails on a rerun —
+ * idempotent upsert the real ingestion path uses, so restarting the app
+ * never duplicates rows or fails on a rerun —
  * unlike {@link com.exchange.exchangeratesystem.rate.RateIngestionService},
  * this deliberately uses the system clock for the rate dates, since its
  * whole purpose is "recent days, whenever you happen to run this locally."

@@ -13,7 +13,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Enables Spring's {@code @Scheduled} support, backing the daily Fixer.io
- * ingestion job (T017, {@code RateIngestionScheduler}), plus a DB-backed
+ * ingestion job ({@code RateIngestionScheduler}), plus a DB-backed
  * distributed lock (ShedLock) so that job only ever runs on one application
  * instance at a time when more than one instance shares the same database.
  * {@code defaultLockAtMostFor} is a safety ceiling only — the method's own

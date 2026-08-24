@@ -72,8 +72,8 @@
             flyway-core alone (pulled in transitively above) no longer
             recognizes ANY specific database, PostgreSQL included - Flyway
             10+ moved each database's dialect support into its own plugin
-            module, confirmed empirically (startup failed with
-            "Unsupported Database: PostgreSQL 16.15" without this).
+            module. Without this, startup fails with an
+            "Unsupported Database" error for every Postgres version.
         -->
         <dependency>
             <groupId>org.flywaydb</groupId>
@@ -168,7 +168,7 @@
             renamed these two modules with a testcontainers- prefix
             (testcontainers-junit-jupiter/testcontainers-postgresql) - the
             bare 1.x names (junit-jupiter/postgresql) no longer exist in the
-            BOM's dependencyManagement, confirmed by inspecting it directly.
+            BOM's dependencyManagement at all.
         -->
         <dependency>
             <groupId>org.testcontainers</groupId>

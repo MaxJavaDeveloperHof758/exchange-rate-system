@@ -9,7 +9,7 @@ import { ExchangeRateService } from '../../core/services/exchange-rate.service';
 const CURRENCY_CODE_PATTERN = /^[A-Za-z]{3}$/;
 
 /**
- * User Story 1's Calculator view (T043): a reactive from/to/optional-date
+ * User Story 1's Calculator view: a reactive from/to/optional-date
  * form, a loading state while `GET /api/exchange` is in flight, a distinct
  * error state on 400/404 (contracts/exchange.md, FR-020), and a success
  * state rendering the rate plus both currencies' post-increment query

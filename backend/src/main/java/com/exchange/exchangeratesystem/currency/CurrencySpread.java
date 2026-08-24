@@ -25,7 +25,7 @@ public class CurrencySpread {
     /**
      * Looks up the fixed spread percentage for a currency code per Appendix B.
      * Unrecognized codes fall through to the "all other currencies" default —
-     * currency-code validity itself is CurrencyCode's responsibility (T008), not
+     * currency-code validity itself is CurrencyCode's responsibility, not
      * this lookup's.
      */
     public BigDecimal spreadFor(String currencyCode) {

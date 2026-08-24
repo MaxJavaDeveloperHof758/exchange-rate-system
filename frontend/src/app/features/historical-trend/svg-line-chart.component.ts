@@ -40,11 +40,11 @@ const BOTTOM_AXIS_TITLE_SPACE = 32;
 const TOP_TITLE_SPACE = 24;
 
 /**
- * T046: pure function mapping `{date, rate}[]` to an SVG `<polyline>` points
+ * Pure function mapping `{date, rate}[]` to an SVG `<polyline>` points
  * string plus min/max-scaled axis ticks (research.md Decision 1 — no
  * charting-library dependency). Kept separate from the component class so
- * T047 can unit-test the point-to-path mapping directly: input points in,
- * geometry out, no DOM/component instantiation involved.
+ * it can be unit-tested directly: input points in, geometry out, no
+ * DOM/component instantiation involved.
  *
  * Fewer than two points is treated as "nothing to draw a trend with," not
  * just "empty": a single point has no line to plot, and axis ticks derived

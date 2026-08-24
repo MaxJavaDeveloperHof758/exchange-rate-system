@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * {@code /api/analytics} — usage statistics across all currencies ever queried
- * (T029, User Story 3), per contracts/analytics.md. Delegates entirely to
+ * (User Story 3), per contracts/analytics.md. Delegates entirely to
  * {@link AnalyticsService}; read-only, so viewing analytics never itself
  * counts as a lookup.
  */

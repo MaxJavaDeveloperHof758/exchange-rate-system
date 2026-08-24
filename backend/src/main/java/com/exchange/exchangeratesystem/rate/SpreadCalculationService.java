@@ -41,7 +41,7 @@ public class SpreadCalculationService {
 
     /**
      * Convenience overload: looks up each currency's fixed Appendix B spread via
-     * {@link CurrencySpread} (T007) before delegating to the pure formula.
+     * {@link CurrencySpread} before delegating to the pure formula.
      *
      * A currency converted to itself is always exactly 1, with no spread applied
      * (spec.md User Story 1, Acceptance Scenario 4) — this is enforced here as an

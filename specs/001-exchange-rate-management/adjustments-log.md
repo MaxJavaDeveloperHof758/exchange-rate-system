@@ -24,12 +24,12 @@ submission.
 integration test — see README) · `cd frontend && npx ng test --watch=false`. As of Item 6, `mvn
 verify` requires Docker running (Testcontainers spins up a real, ephemeral PostgreSQL per test
 class — see Item 6's writeup).
-**Current state**: 46/46 backend tests (44 + 2 new — see Item 6), 20/20 frontend tests, both green
-but not yet committed (Item 6 is staged, awaiting the user's "commit").
+**Current state**: 46/46 backend tests, 20/20 frontend tests, both green. Item 6 is committed
+(`03e904a`); Item 9 is done but **staged, not committed**.
 
 ---
 
-## Status: 9 of 13 items done
+## Status: 10 of 13 items done
 
 | # | Item | Status | Commit |
 |---|---|---|---|
@@ -38,10 +38,10 @@ but not yet committed (Item 6 is staged, awaiting the user's "commit").
 | 3 | Fat `ExchangeRateController` + `TrendInsightService` duplicating series logic | ✅ Done | `8e650af` |
 | 4 | `@Transactional` wraps the outbound Fixer.io HTTP call | ✅ Done | `e78bea9` |
 | 5 | Cross-currency usage-counter atomicity on partial pair-lookup failure | ✅ Done | `79c6381` |
-| 6 | H2 `MERGE` not Postgres-portable; README implies production/multi-instance use | ✅ Done | *(staged)* |
+| 6 | H2 `MERGE` not Postgres-portable; README implies production/multi-instance use | ✅ Done | `03e904a` |
 | 7 | `/history` returns only the derived pair rate, not each currency's raw rate (FR-014) | ✅ Done | `7addfa4` |
 | 8 | `CurrencySpread`'s Appendix B table hardcoded, not externally configurable | ✅ Done | `489d707` |
-| 9 | Too much dev-process narrative in code comments; move decision history to ADRs | ⬜ **Not started** | — |
+| 9 | Too much dev-process narrative in code comments; move decision history to ADRs | ✅ Done | *(staged)* |
 | 10 | *(optional)* docker-compose for one-command startup | ⬜ **Not started** | — |
 | 11 | *(optional)* commit a generated OpenAPI spec to the repo | ⬜ **Not started** | — |
 | 12 | `toUpperCase()` should use `Locale.ROOT` | ✅ Done | `610c5e4` |
@@ -211,16 +211,27 @@ Local verification used a real `postgres:16` Docker container (Docker Desktop wa
 the start of this item and had to be launched) rather than a `docker-compose.yml` — Item 10 stays
 separable, per the plan's own judgment call.
 
-### 9. Comment cleanup + ADR extraction
-Trim development-process narrative (task IDs, "attempt 1/2/3 failed because...", AI-workflow
-asides) out of production code comments — keep only comments explaining a non-obvious invariant
-or trade-off. Move the decision history itself into `docs/architecture-decisions.md` or an
-`ADR/` directory. Note: this session's own new code (Items 1–8, 12) already tends to explain
-*why* rather than narrate history, but the pre-existing codebase (especially `UsageTrackingService`,
-`CurrencyUsageRepository`, `ExchangeRateRepository`) still has the original T007–T024-era comments
-this item is about — now including Item 6's own new migration/test-config comments, which lean
-narrative in places (e.g. the Testcontainers module-renaming explanation) and are themselves a
-candidate for this item's trim, not just the pre-existing code.
+### 9. Comment cleanup + ADR extraction — *(staged, awaiting commit)*
+New `docs/architecture-decisions.md` with two records: **ADR-0001** (cross-currency usage-counter
+concurrency design — the two failed MERGE attempts, the measured failure counts, the rejected
+nested-transaction approach, and the final UPDATE-only + compensation design) and **ADR-0002**
+(the ShedLock addition, reversing `plan.md`'s original no-distributed-lock decision). This is
+where `UsageTrackingService`'s and `CurrencyUsageRepository#incrementUsage`'s multi-paragraph
+"tried X, failed because Y, measured Z" narratives actually came from — both trimmed down to a
+short pointer to the ADR plus the invariant/trade-off explanation a maintainer still needs (why
+UPDATE-only, why `TransactionTemplate` not a same-class `@Transactional`, why compensation instead
+of a spanning transaction). The two narrative pom.xml comments Item 6 itself flagged (the Flyway
+Postgres-plugin note, the Testcontainers module-renaming note) were trimmed the same way, in
+place — kept as short factual constraints, dropped the self-referential "confirmed empirically"/
+"confirmed by inspecting it directly" process narration.
+Separately, a mechanical sweep removed bare task-ID citations (`T007`–`T058`) from Javadoc/comments
+across both stacks — 20 backend files, 7 frontend files — since Item 9's own description names
+"task IDs" as one of the three things to trim, not just the two files with genuine war stories.
+One incidental fix caught along the way: `FixerClientException`'s comment still said
+`UpstreamFetchException` was "not yet implemented" — it has been since the original build; fixed
+while removing that comment's task-ID citations, not left to bit-rot further.
+Full `mvn verify` (46/46) and `ng test` (20/20) re-run after the sweep — comment-only changes, but
+worth confirming nothing was accidentally altered across ~27 touched files.
 
 ---
 
@@ -243,17 +254,19 @@ or wiring a Maven plugin to generate it at build time.
 
 ## Notes for a continuation session
 
-- Everything above through Item 8/12/1–5/7 is committed on `fix/adjustments` at `489d707`; Item 6
-  (H2 → PostgreSQL + Flyway) is done and verified but **staged, not committed** — this session's
-  own rule (never commit unprompted) applies to it same as every other item.
+- Everything through Item 8/12/1–5/7 is committed on `fix/adjustments`; Item 6 (H2 → PostgreSQL +
+  Flyway) is committed at `03e904a`. Item 9 (comment cleanup + ADR extraction) is done and
+  verified but **staged, not committed** — this session's own rule (never commit unprompted)
+  applies same as every other item.
 - The user has been committing manually after each item — this session never ran `git commit`
   itself, only proposed messages.
 - **Docker is now a real prerequisite**, for local dev (a `postgres:16` container — see README)
   and for the backend test suite (Testcontainers spins up a real Postgres per test class). A
   continuation session needs Docker running before `mvn verify` will pass at all — it fails
   outright, not gracefully, without it.
-- No item so far has required frontend changes except Item 7 (raw rates) — Item 6 (Postgres) was
-  backend/infra-only as expected; Items 9/13 are docs-only; Item 10 (docker-compose) touches
+- Item 6 (Postgres) was backend/infra-only, as expected. Item 9 touched both stacks (task-ID
+  citations existed in frontend `.ts` comments too, not just backend Java) but only comments/docs
+  — no behavior change either side. Item 13 remains docs-only. Item 10 (docker-compose) touches
   build/deploy tooling for both, not application code in either.
-- Item 9 (comment cleanup) should now also look at Item 6's own new code, not just the
-  pre-existing T007–T024-era comments it was originally scoped around (see Item 6's writeup).
+- New file: `docs/architecture-decisions.md` (2 ADRs so far) — Item 13's `CLAUDE.md` rewrite
+  should probably link to it rather than duplicate any of its content.

@@ -19,7 +19,7 @@ interface InsightParams {
 }
 
 /**
- * T050: composes a pair+date-range picker with `RateTableComponent`,
+ * Composes a pair+date-range picker with `RateTableComponent`,
  * `SvgLineChartComponent`, and `InsightPanelComponent` side by side. On
  * submit, the history fetch (owned here, feeding the table/chart) and the
  * insight fetch (owned entirely by `InsightPanelComponent`, triggered by

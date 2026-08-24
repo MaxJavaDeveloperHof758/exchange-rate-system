@@ -12,7 +12,7 @@ import com.exchange.exchangeratesystem.error.InsightUnavailableException;
 import com.exchange.exchangeratesystem.rate.dto.HistoricalRatePoint;
 
 /**
- * T035: generates a short, grounded natural-language commentary on a currency
+ * Generates a short, grounded natural-language commentary on a currency
  * pair's rate movement over a date range, per contracts/insight.md and
  * constitution Principle X. Takes the exact same spread-adjusted
  * {@code (date, rate)} series {@code GET /api/exchange/history} would return

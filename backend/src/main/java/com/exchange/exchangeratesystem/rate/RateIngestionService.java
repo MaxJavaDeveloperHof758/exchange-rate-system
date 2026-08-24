@@ -31,8 +31,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * If the Fixer.io fetch itself fails, no repository call has happened yet,
  * so all existing {@code ExchangeRate} rows are left untouched by
  * construction — the failure is logged here (in addition to FixerClient's
- * own lower-level log) and re-thrown so callers (the scheduler, T017; the
- * manual-refresh endpoint, T028) know the run did not succeed.
+ * own lower-level log) and re-thrown so callers (the scheduler; the
+ * manual-refresh endpoint) know the run did not succeed.
  */
 @Service
 public class RateIngestionService {

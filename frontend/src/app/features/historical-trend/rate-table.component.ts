@@ -11,7 +11,7 @@ interface RateTableRow {
 }
 
 /**
- * T048: renders `HistoryResponse.points` as a table, merging in
+ * Renders `HistoryResponse.points` as a table, merging in
  * `missingDates` as visibly distinct rows rather than silently omitting
  * them — per contracts/exchange.md and spec.md User Story 2, Acceptance
  * Scenario 5 ("clearly indicate which parts of the requested range are

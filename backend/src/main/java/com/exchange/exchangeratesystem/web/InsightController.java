@@ -29,11 +29,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * {@code /api/exchange/insight} — the AI-generated trend commentary (T037,
- * User Story 2's AI half), per contracts/insight.md. A separate controller
+ * {@code /api/exchange/insight} — the AI-generated trend commentary
+ * (User Story 2's AI half), per contracts/insight.md. A separate controller
  * from {@link ExchangeRateController} despite sharing the {@code /api/exchange}
- * path prefix, per T037's own file layout. Never reads or writes any Currency
- * Usage Counter row (FR-011's scope is {@code /api/exchange} lookups only).
+ * path prefix, by deliberate file-layout choice. Never reads or writes any
+ * Currency Usage Counter row (FR-011's scope is {@code /api/exchange} lookups
+ * only).
  *
  * Builds the series once via {@link HistoricalRateService} (the same
  * component {@code GET /api/exchange/history} uses) and passes it straight

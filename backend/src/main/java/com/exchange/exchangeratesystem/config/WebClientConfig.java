@@ -33,7 +33,7 @@ public class WebClientConfig {
 
     /**
      * Fixer.io's free-tier API authenticates via an access_key query parameter on
-     * every request. Attaching it here once means FixerClient (T015) never has to
+     * every request. Attaching it here once means FixerClient never has to
      * know about authentication at all.
      */
     private ExchangeFilterFunction addAccessKey(String apiKey) {

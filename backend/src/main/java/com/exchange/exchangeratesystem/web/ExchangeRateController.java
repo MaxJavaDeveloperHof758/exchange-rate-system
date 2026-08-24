@@ -35,9 +35,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * {@code /api/exchange} — the spread-adjusted rate lookup (T027, User Story 1),
- * the historical range query (T027, User Story 2's raw-data half), and the
- * optional manual-refresh trigger (T028, FR-022). All three per contracts/exchange.md.
+ * {@code /api/exchange} — the spread-adjusted rate lookup (User Story 1),
+ * the historical range query (User Story 2's raw-data half), and the
+ * optional manual-refresh trigger (FR-022). All three per contracts/exchange.md.
  *
  * Deliberately thin: parses/validates input, delegates to
  * {@link ExchangeRateQueryService}/{@link HistoricalRateService}/

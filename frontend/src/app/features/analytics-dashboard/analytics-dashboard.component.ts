@@ -31,7 +31,7 @@ const LABEL_WIDTH = 56;
 const VALUE_WIDTH = 160;
 
 /**
- * T052: pure function mapping `topCurrencies` to horizontal-bar geometry —
+ * Pure function mapping `topCurrencies` to horizontal-bar geometry —
  * same no-charting-library approach as `mapPointsToLineChart`
  * (research.md Decision 1), kept separate from the component so the
  * mapping itself stays trivially unit-testable. Bar width is scaled
@@ -76,7 +76,7 @@ export function mapEntriesToBarChart(
 }
 
 /**
- * User Story 3's Usage Analytics Dashboard view (T052): fetches
+ * User Story 3's Usage Analytics Dashboard view: fetches
  * `GET /api/analytics` once on load (the endpoint takes no parameters —
  * there is no form to submit) and renders `topCurrencies` as a ranked,
  * ever-queried-only bar list, with its own loading/error state per

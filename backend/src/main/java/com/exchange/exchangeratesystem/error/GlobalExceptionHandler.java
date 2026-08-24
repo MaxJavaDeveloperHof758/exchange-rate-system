@@ -19,8 +19,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  * message}} body shape used across contracts/*.md, so no endpoint ever leaks
  * a raw stack trace or Spring's default error shape.
  *
- * Three fixed mappings per T021 (the three {@link ApiException} subclasses,
- * T020); the rest are framework-level parsing/binding failures that occur
+ * Three fixed mappings for the three {@link ApiException} subclasses;
+ * the rest are framework-level parsing/binding failures that occur
  * before a controller ever gets to raise a domain exception (e.g. a malformed
  * {@code date} query parameter never reaches a currency-validation check —
  * Spring's own argument binding rejects it first), plus a catch-all so an

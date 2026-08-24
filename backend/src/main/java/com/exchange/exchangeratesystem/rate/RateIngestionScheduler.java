@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  * Fires the daily Fixer.io ingestion job at 00:05 GMT (brief Section 4.1: "0 5
  * 0 * * *" = second 0, minute 5, hour 0 → 00:05:00, every day). Scheduling
  * itself is already enabled via {@code @EnableScheduling} on SchedulingConfig
- * (T014) — this class only needs the trigger.
+ * — this class only needs the trigger.
  *
  * {@code @SchedulerLock} makes this safe to run on more than one application
  * instance sharing the same database: every instance's {@code @Scheduled}

@@ -14,7 +14,7 @@ type InsightState =
 const LOADING_STATE: InsightState = { status: 'loading' };
 
 /**
- * T049: the AI trend commentary, with its own loading/error/success state
+ * The AI trend commentary, with its own loading/error/success state
  * — entirely independent of whatever drives the table/chart's data (FR-017,
  * spec.md User Story 2 Acceptance Scenarios 3–4). Fetches its own insight
  * reactively whenever its from/to/fromDate/toDate inputs change, via

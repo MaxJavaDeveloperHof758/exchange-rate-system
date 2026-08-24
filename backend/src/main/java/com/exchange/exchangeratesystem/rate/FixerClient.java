@@ -12,11 +12,11 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 /**
- * Calls Fixer.io's {@code /latest} endpoint via the T013 {@code fixerWebClient}
+ * Calls Fixer.io's {@code /latest} endpoint via the {@code fixerWebClient}
  * bean and maps the response into a {@link FixerRatesResult}. Every failure mode
  * (network failure, non-2xx response, or Fixer's own {@code success: false}
  * body convention) is logged and raised as {@link FixerClientException} — never
- * silently swallowed — so the caller (T016 {@code RateIngestionService}) can
+ * silently swallowed — so the caller ({@code RateIngestionService}) can
  * decide how to degrade (NFR-004: retain existing data, make the failure
  * observable, don't corrupt anything).
  */

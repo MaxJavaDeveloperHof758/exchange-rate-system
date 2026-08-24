@@ -9,8 +9,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * Allows the Angular dev server (a different origin — localhost:4200 vs the
  * backend's own localhost:8080) to call every {@code /api/**} endpoint from
  * the browser. Without this, every real frontend HTTP call fails with a CORS
- * error before ever reaching a controller — confirmed empirically during
- * T042. The allowed origin is externalized, per the same configurability
+ * error before ever reaching a controller. The allowed origin is
+ * externalized, per the same configurability
  * principle (FR-019/NFR-007) already applied to the frontend's own
  * environment files, so a reviewer running the frontend on a different port
  * never needs to edit backend source.

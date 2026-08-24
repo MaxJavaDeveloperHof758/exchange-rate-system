@@ -14,7 +14,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Records a successful lookup against one or both currencies of a pair
- * (research.md Decision 5 / constitution Principle IV), per T024.
+ * (constitution Principle IV).
  *
  * {@link CurrencyUsageRepository#incrementUsage} is a plain UPDATE — it never
  * throws for a currency with no row yet, it just reports 0 rows affected. This
@@ -26,7 +26,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * {@code DataIntegrityViolationException} — retried up to
  * {@value #MAX_ATTEMPTS} times, since the very next attempt's UPDATE will find
  * the row the winning thread just created and succeed as a plain, already-
- * proven-safe update.
+ * proven-safe update. See {@code docs/architecture-decisions.md} (ADR-0001)
+ * for why this design, not a single upsert-and-increment statement.
  *
  * Both repository methods are pure native queries — no JPA entity is ever
  * loaded, saved, or attached to a persistence context on this path — so there
@@ -46,21 +47,14 @@ import org.springframework.transaction.support.TransactionTemplate;
  * If the second currency's recording then fails after exhausting its retry
  * budget, the first currency's increment must not be left permanently
  * applied while the overall request still fails (a client retry of the same
- * request must never be able to double-count it). A single DB transaction
- * spanning both currencies — the seemingly obvious fix — was tried first via
- * {@code PROPAGATION_NESTED} savepoints and rejected after it failed
- * empirically: Hibernate's own {@code Session}/{@code Transaction} does not
- * support nested transactions at all (confirmed against this project's
- * actual Hibernate/Spring stack — a savepoint rolls back the JDBC connection
- * cleanly, but Hibernate still marks the *whole* transaction rollback-only,
- * so the outer commit then fails with {@code UnexpectedRollbackException}
- * even on the success path). Instead, on failure this method explicitly
- * <b>compensates</b> every currency it already recorded, via
+ * request must never be able to double-count it). On failure this method
+ * explicitly <b>compensates</b> every currency it already recorded, via
  * {@link CurrencyUsageRepository#decrementUsage} (an equally atomic,
  * concurrency-safe relative {@code -1}, composing correctly with any other
  * request incrementing/decrementing the same currency concurrently) followed
  * by a conditional {@link CurrencyUsageRepository#deleteIfZeroCount} for the
- * case where compensation was undoing that currency's very first-ever row.
+ * case where compensation was undoing that currency's very first-ever row —
+ * see ADR-0001 for why a single spanning transaction was not used instead.
  */
 @Service
 public class UsageTrackingService {
@@ -81,7 +75,7 @@ public class UsageTrackingService {
     }
 
     /**
-     * Records a lookup for both sides of a pair — T011's atomic increment once
+     * Records a lookup for both sides of a pair — an atomic increment once
      * per currency, twice total, or once if {@code fromCurrency} equals
      * {@code toCurrency}. If recording the second currency fails, the first
      * currency's already-committed increment is explicitly compensated back
