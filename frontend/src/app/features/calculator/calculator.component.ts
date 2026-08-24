@@ -3,10 +3,10 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { ApiErrorResponse } from '../../core/models/api-error.model';
+import { CURRENCY_CODE_PATTERN, CURRENCY_OPTIONS } from '../../core/models/currency.model';
 import { ExchangeRateResponse } from '../../core/models/exchange-rate.model';
 import { ExchangeRateService } from '../../core/services/exchange-rate.service';
-
-const CURRENCY_CODE_PATTERN = /^[A-Za-z]{3}$/;
+import { CurrencyComboboxComponent } from '../../shared/currency-combobox/currency-combobox.component';
 
 /**
  * User Story 1's Calculator view: a reactive from/to/optional-date
@@ -17,7 +17,7 @@ const CURRENCY_CODE_PATTERN = /^[A-Za-z]{3}$/;
  */
 @Component({
   selector: 'app-calculator',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, CurrencyComboboxComponent],
   templateUrl: './calculator.component.html',
   styleUrl: './calculator.component.scss',
 })
@@ -25,6 +25,7 @@ export class CalculatorComponent {
   private readonly fb = inject(FormBuilder);
   private readonly exchangeRateService = inject(ExchangeRateService);
 
+  protected readonly currencyOptions = CURRENCY_OPTIONS;
   protected readonly loading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly result = signal<ExchangeRateResponse | null>(null);

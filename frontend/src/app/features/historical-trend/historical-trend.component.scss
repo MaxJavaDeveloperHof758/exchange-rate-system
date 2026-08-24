@@ -1,3 +1,25 @@
+.preset-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.preset {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius);
+  background-color: #fff;
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: rgba(63, 81, 181, 0.08);
+  }
+}
+
 form {
   display: flex;
   flex-wrap: wrap;
@@ -10,15 +32,22 @@ form {
   flex-direction: column;
   gap: 0.25rem;
 
-  input {
+  // The currency fields' own <input> now lives inside app-currency-combobox
+  // and styles itself; only the plain date inputs are a direct match here.
+  input[type='date'] {
     box-sizing: border-box;
     width: 8rem;
     padding: 0.4rem 0.5rem;
     font-size: 1rem;
-  }
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
-  input:not([type='date']) {
-    text-transform: uppercase;
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.15);
+    }
   }
 }
 

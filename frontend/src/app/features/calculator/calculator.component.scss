@@ -11,14 +11,21 @@ form {
   flex-direction: column;
   gap: 0.25rem;
 
-  input {
-    text-transform: uppercase;
+  // The currency fields' own <input> now lives inside app-currency-combobox
+  // and styles itself; only the plain date input is a direct match here.
+  input[type='date'] {
+    box-sizing: border-box;
     padding: 0.4rem 0.5rem;
     font-size: 1rem;
-  }
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
-  input[type='date'] {
-    text-transform: none;
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.15);
+    }
   }
 }
 

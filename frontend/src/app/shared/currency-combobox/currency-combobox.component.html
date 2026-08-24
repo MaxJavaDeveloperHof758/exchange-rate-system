@@ -1,0 +1,39 @@
+<div class="combobox">
+  <input
+    [id]="inputId"
+    type="text"
+    role="combobox"
+    autocomplete="off"
+    aria-autocomplete="list"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="inputId + '-listbox'"
+    [attr.aria-activedescendant]="
+      activeIndex() >= 0 ? inputId + '-option-' + activeIndex() : null
+    "
+    [placeholder]="placeholder"
+    [disabled]="disabled()"
+    [value]="value()"
+    (input)="onInput($any($event.target).value)"
+    (focus)="onFocus()"
+    (blur)="onBlur()"
+    (keydown)="onKeydown($event)"
+  />
+
+  @if (open() && filteredOptions().length > 0) {
+    <ul class="combobox-panel" role="listbox" [id]="inputId + '-listbox'">
+      @for (option of filteredOptions(); track option.code; let i = $index) {
+        <li
+          [id]="inputId + '-option-' + i"
+          role="option"
+          [attr.aria-selected]="i === activeIndex()"
+          class="combobox-option"
+          [class.active]="i === activeIndex()"
+          (mousedown)="onOptionMouseDown($event, option)"
+        >
+          <span class="option-code">{{ option.code }}</span>
+          <span class="option-name">{{ option.name }}</span>
+        </li>
+      }
+    </ul>
+  }
+</div>

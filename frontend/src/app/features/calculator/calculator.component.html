@@ -3,7 +3,12 @@
 <form [formGroup]="form" (ngSubmit)="onSubmit()">
   <div class="field">
     <label for="from">From</label>
-    <input id="from" formControlName="from" maxlength="3" placeholder="EUR" autocomplete="off" />
+    <app-currency-combobox
+      inputId="from"
+      formControlName="from"
+      placeholder="EUR"
+      [options]="currencyOptions"
+    />
     @if (form.controls.from.invalid && form.controls.from.touched) {
       <p class="field-error">Enter a valid 3-letter currency code.</p>
     }
@@ -11,7 +16,12 @@
 
   <div class="field">
     <label for="to">To</label>
-    <input id="to" formControlName="to" maxlength="3" placeholder="PLN" autocomplete="off" />
+    <app-currency-combobox
+      inputId="to"
+      formControlName="to"
+      placeholder="PLN"
+      [options]="currencyOptions"
+    />
     @if (form.controls.to.invalid && form.controls.to.touched) {
       <p class="field-error">Enter a valid 3-letter currency code.</p>
     }
