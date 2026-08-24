@@ -41,6 +41,30 @@ fixer:
   api-key: ${FIXER_API_KEY}
   base-url: ${FIXER_BASE_URL:http://data.fixer.io/api}
 
+# Appendix B's spread lookup table (CurrencySpread/CurrencySpreadProperties) —
+# externalized here so re-tiering or adding a currency is a config edit, not a
+# code change. Values are quoted as YAML strings ("2.75", not bare 2.75) as a
+# defensive habit for anything feeding a BigDecimal, even though this was
+# checked empirically (CurrencySpreadPropertiesBindingTest, plus a manual
+# unquoted trial while building this): this Spring Boot version's YAML
+# property-source loader preserves the original scalar text either way, so
+# quoting isn't compensating for an actual reproduced bug here — it's just
+# removing any dependency on that implementation detail continuing to hold.
+currency:
+  spread:
+    default-spread: "2.75"
+    tiers:
+      EUR: "0.00" # base currency (Fixer.io free tier is fixed to EUR)
+      JPY: "3.25"
+      HKD: "3.25"
+      KRW: "3.25"
+      MYR: "4.50"
+      INR: "4.50"
+      MXN: "4.50"
+      RUB: "6.00"
+      CNY: "6.00"
+      ZAR: "6.00"
+
 # The Angular dev server's origin, allowed to call /api/** via CORS (CorsConfig).
 frontend:
   origin: ${FRONTEND_ORIGIN:http://localhost:4200}

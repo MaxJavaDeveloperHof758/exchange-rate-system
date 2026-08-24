@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
-import com.exchange.exchangeratesystem.currency.CurrencySpread;
+import com.exchange.exchangeratesystem.currency.CurrencySpreadTestFixtures;
 import com.exchange.exchangeratesystem.error.RateNotAvailableException;
 import com.exchange.exchangeratesystem.rate.dto.HistoricalRatePoint;
 import com.exchange.exchangeratesystem.rate.dto.HistoryResponse;
@@ -37,7 +37,7 @@ class HistoricalRateServiceTest {
     @BeforeEach
     void setUp() {
         service = new HistoricalRateService(
-                exchangeRateRepository, new SpreadCalculationService(new CurrencySpread()));
+                exchangeRateRepository, new SpreadCalculationService(CurrencySpreadTestFixtures.realAppendixB()));
     }
 
     @Test
@@ -108,7 +108,7 @@ class HistoricalRateServiceTest {
         assertThat(point.toRateToUsd()).isEqualByComparingTo(plnRate);
         assertThat(point.adjustedRate())
                 .isEqualByComparingTo(
-                        new SpreadCalculationService(new CurrencySpread())
+                        new SpreadCalculationService(CurrencySpreadTestFixtures.realAppendixB())
                                 .calculate("PLN", "EUR", plnRate, eurRate));
     }
 

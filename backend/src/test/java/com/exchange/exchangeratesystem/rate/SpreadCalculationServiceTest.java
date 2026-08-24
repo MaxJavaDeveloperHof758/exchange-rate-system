@@ -9,12 +9,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import com.exchange.exchangeratesystem.currency.CurrencySpread;
+import com.exchange.exchangeratesystem.currency.CurrencySpreadTestFixtures;
 
 class SpreadCalculationServiceTest {
 
     private final SpreadCalculationService service =
-            new SpreadCalculationService(new CurrencySpread());
+            new SpreadCalculationService(CurrencySpreadTestFixtures.realAppendixB());
 
     /**
      * Every Appendix B tier's numeric spread value, isolated: fromSpread pinned
