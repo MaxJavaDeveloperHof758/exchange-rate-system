@@ -26,35 +26,34 @@ documentation) — **read those before writing code**:
 | [`specs/001-exchange-rate-management/checklists/requirements.md`](specs/001-exchange-rate-management/checklists/requirements.md) | Spec quality checklist (already passing). |
 | [`specs/001-exchange-rate-management/implementation-log.md`](specs/001-exchange-rate-management/implementation-log.md) | Running log of what's been built, non-obvious bugs found/fixed, and design decisions confirmed with the user — read this before `tasks.md`'s checkboxes if you need *why*, not just *what*. |
 | [`specs/001-exchange-rate-management/validation-checklist.md`](specs/001-exchange-rate-management/validation-checklist.md) | Manual end-to-end validation checklist (T054) with concrete commands/expected output per step. |
+| [`specs/001-exchange-rate-management/adjustments-log.md`](specs/001-exchange-rate-management/adjustments-log.md) | Continuity record for post-submission adjustments work (bug fixes/refactors requested after the original build) — its own status table and "what's left" section are the live source of truth for that effort, not this file. May not exist, or may already be merged into `main`, depending on where the repo actually is — check `git log`/`git branch` rather than assuming either way. |
+| [`docs/architecture-decisions.md`](docs/architecture-decisions.md) | Decision *history* extracted out of code comments (what was tried, what failed, why the final design won) — code comments should only explain a current invariant/trade-off; the journey belongs here. |
 
-## Current repository state (read `tasks.md`'s checkboxes for the live status — this section is a snapshot, not a substitute)
+## Finding out what's actually true right now
 
-All five implementation stages (`tasks.md`) are complete and committed, plus the Polish phase's
-documentation tasks (T054/T055). Only T056–T058 (this file's own audit, the `[AI]`-prefix
-convention check, and a final `double`/`float` sweep) remain, and are process/verification tasks
-with no large code surface of their own. Concretely, as of this snapshot:
+This file, `tasks.md`'s checkboxes, and every prose "current state" claim anywhere in this repo
+are snapshots that go stale the moment new work lands — treat all of them as *was true when
+written*, never as *still true now*. Before assuming anything about the repo's status:
 
-- Backend: Spring Boot app under `backend/` (own `pom.xml`), package
-  `com.exchange.exchangeratesystem` — **the package/groupId mismatch flagged in earlier drafts of
-  this file is resolved**: the docs and the code both use `com.exchange.exchangeratesystem` /
-  Maven `com.exchange:exchange-rate-system`. All five backend/frontend stages' endpoints,
-  services, repositories, and tests exist under `backend/src/main/java/...` and
-  `backend/src/test/java/...`.
-- Frontend: Angular SPA under `frontend/` (own `package.json`), all three required views
-  (`/calculator`, `/trend`, `/analytics`) implemented and wired to the real backend.
-- `README.md` at the repository root is written (setup/run, architecture, AI Workflow,
-  assumptions, trade-offs) — no longer a placeholder.
-- Git history exists, every AI-assisted commit prefixed `[AI]` (a few early commits predate strict
-  adherence to this — see `git log`).
-
-Do not re-scaffold, re-plan, or re-implement anything already `[X]` in `tasks.md` — check there
-first. If a task still references a stale path/package assumption from an early planning draft,
-that's a documentation lag in `tasks.md`'s own task-description prose, not a real conflict — the
-actual `com.exchange.exchangeratesystem` package is authoritative.
+- Run `git log --oneline -20` and `git branch -a` first. They're authoritative; a checklist or a
+  paragraph in a doc is not.
+- Treat source code and passing tests as the ground truth for *what the system does*. If a doc
+  (this file included) describes a class, path, or behavior that conflicts with the actual code,
+  the code wins — that's a documentation lag, not a real conflict, and not grounds to re-implement
+  something that already exists.
+- The original build (`tasks.md`'s five stages, T001–T058) being marked complete does not mean
+  no further work has happened since — check for a continuation effort (an adjustments log, an
+  open branch, recent commits not reflected in any doc) before assuming the feature is "done" in
+  an absolute sense.
+- If you're mid-task and this file's guidance seems to contradict what you're actually observing
+  in the repo, say so explicitly and confirm with the user rather than silently picking a side.
 
 ## Fixed technology stack (non-negotiable — see constitution's Technology Stack section)
 
-- **Backend**: Java 17+, Spring Boot, Maven, Hibernate/Spring Data JPA, any relational DB.
+- **Backend**: Java 17+, Spring Boot, Maven, Hibernate/Spring Data JPA, any relational DB (the
+  constitution's floor requirement — check `backend/pom.xml`'s datasource driver and
+  `backend/src/main/resources/db/migration/` for which one this repo actually runs against right
+  now, since that's a choice this project has made concretely, not left open).
 - **Frontend**: Angular v15+, TypeScript throughout.
 - **AI Integration**: Spring AI (preferred) or LangChain4j, against a local open-source LLM
   (Ollama recommended) or an OpenAI-compatible endpoint.
@@ -115,13 +114,17 @@ task) are actually done — each stage's "Independent Test" is how you confirm i
 
 ## Working conventions
 
-- Implementation is done; remaining work is Polish-phase verification (T054–T058) and whatever
-  the user asks for next (bug fixes, additional polish, submission prep). Don't re-scaffold or
-  re-plan already-`[X]` work from a general request alone — confirm against `tasks.md` first.
-- If a task in `tasks.md` references a class/method/path that conflicts with the actual code,
-  resolve the conflict explicitly with the user before changing anything from it, rather than
-  guessing.
-- `README.md` exists at the repository root and covers setup, architecture, an "AI Workflow"
-  section, assumptions, and trade-offs (brief Section 9) — keep it in sync with any further
-  functional change; don't let it drift stale the way this file's own "Current repository state"
-  section once did.
+- Don't re-scaffold, re-plan, or re-implement work a doc claims is already done — but don't take
+  the claim on faith either. Confirm against `tasks.md`'s checkboxes and, for anything past the
+  original build, `adjustments-log.md`'s own status table, then against the actual code.
+- If a task or doc references a class/method/path that conflicts with the actual code, resolve
+  the conflict explicitly with the user before changing anything from it, rather than guessing
+  which one is authoritative.
+- `README.md` covers setup, architecture, an "AI Workflow" section, assumptions, and trade-offs
+  (brief Section 9) — keep it in sync with any functional change. A stale README bullet describing
+  an old design is a bug in the same category as a stale `tasks.md` checkbox, not just a
+  documentation nicety — this file's own history (see "Finding out what's actually true right
+  now" above) is the cautionary example of what letting that slide looks like.
+- New decision history (a design tried and rejected, a non-obvious trade-off) belongs in
+  `docs/architecture-decisions.md`, not narrated inline in a code comment — keep code comments to
+  the invariant/trade-off a maintainer needs now, not the story of how it was reached.

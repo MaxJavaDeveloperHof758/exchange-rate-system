@@ -24,12 +24,13 @@ submission.
 integration test — see README) · `cd frontend && npx ng test --watch=false`. As of Item 6, `mvn
 verify` requires Docker running (Testcontainers spins up a real, ephemeral PostgreSQL per test
 class — see Item 6's writeup).
-**Current state**: 46/46 backend tests, 20/20 frontend tests, both green. Item 6 is committed
-(`03e904a`); Item 9 is done but **staged, not committed**.
+**Current state**: 46/46 backend tests, 20/20 frontend tests, both green. Items 6 and 9 are
+committed (`03e904a`, `054bfec`); Item 13 is done but **staged, not committed**. Item 13 is
+docs-only (`CLAUDE.md`), so no test re-run was needed for it.
 
 ---
 
-## Status: 10 of 13 items done
+## Status: 11 of 13 items done
 
 | # | Item | Status | Commit |
 |---|---|---|---|
@@ -41,11 +42,11 @@ class — see Item 6's writeup).
 | 6 | H2 `MERGE` not Postgres-portable; README implies production/multi-instance use | ✅ Done | `03e904a` |
 | 7 | `/history` returns only the derived pair rate, not each currency's raw rate (FR-014) | ✅ Done | `7addfa4` |
 | 8 | `CurrencySpread`'s Appendix B table hardcoded, not externally configurable | ✅ Done | `489d707` |
-| 9 | Too much dev-process narrative in code comments; move decision history to ADRs | ✅ Done | *(staged)* |
+| 9 | Too much dev-process narrative in code comments; move decision history to ADRs | ✅ Done | `054bfec` |
 | 10 | *(optional)* docker-compose for one-command startup | ⬜ **Not started** | — |
 | 11 | *(optional)* commit a generated OpenAPI spec to the repo | ⬜ **Not started** | — |
 | 12 | `toUpperCase()` should use `Locale.ROOT` | ✅ Done | `610c5e4` |
-| 13 | `CLAUDE.md` reads as a stale narrative snapshot, not durable working rules | ⬜ **Not started** | — |
+| 13 | `CLAUDE.md` reads as a stale narrative snapshot, not durable working rules | ✅ Done | *(staged)* |
 
 (Items 10/11 are explicitly optional per the feedback document itself — the user confirmed doing
 both when asked, so they're "not started," not "declined.")
@@ -211,7 +212,7 @@ Local verification used a real `postgres:16` Docker container (Docker Desktop wa
 the start of this item and had to be launched) rather than a `docker-compose.yml` — Item 10 stays
 separable, per the plan's own judgment call.
 
-### 9. Comment cleanup + ADR extraction — *(staged, awaiting commit)*
+### 9. Comment cleanup + ADR extraction — `054bfec`
 New `docs/architecture-decisions.md` with two records: **ADR-0001** (cross-currency usage-counter
 concurrency design — the two failed MERGE attempts, the measured failure counts, the rejected
 nested-transaction approach, and the final UPDATE-only + compensation design) and **ADR-0002**
@@ -233,15 +234,23 @@ while removing that comment's task-ID citations, not left to bit-rot further.
 Full `mvn verify` (46/46) and `ng test` (20/20) re-run after the sweep — comment-only changes, but
 worth confirming nothing was accidentally altered across ~27 touched files.
 
+### 13. `CLAUDE.md` rewrite — *(staged, awaiting commit)*
+Replaced the "Current repository state" section (a dated snapshot claiming "T056–T058 remain" and
+describing only the original build — itself already stale, since it said nothing about this whole
+post-submission effort or the Postgres migration) with a "Finding out what's actually true right
+now" section: durable rules (check `git log`/`git branch` first, treat source/tests as the ground
+truth over any doc, don't assume `[X]` means still-accurate) instead of a fact-claim that decays
+the moment more work lands. Added table rows for `adjustments-log.md` and the new
+`docs/architecture-decisions.md`. "Working conventions" reworded the same way — pointed at
+`adjustments-log.md`'s own status table for anything past the original build, rather than
+hardcoding "remaining work is T054–T058" as this file did before. Left "Implementation order"
+(the five original `tasks.md` stages) and the constitution cheat-sheet alone — genuinely durable,
+historical-structure information that doesn't make a current-state claim liable to decay.
+Docs-only; no test re-run needed.
+
 ---
 
 ## What's left
-
-### 13. `CLAUDE.md` rewrite
-Replace the still-somewhat-narrative "Current repository state" framing with durable rules: read
-current task/code status before assuming anything, treat source and tests as authoritative over
-stale descriptions, don't assume `[X]` means still-accurate. Low risk, low effort — a good
-candidate to do early in a continuation session.
 
 ### 10/11. Optional: docker-compose + committed OpenAPI spec
 Both confirmed in scope ("do both") but not started. docker-compose needs Dockerfiles for both
@@ -254,10 +263,10 @@ or wiring a Maven plugin to generate it at build time.
 
 ## Notes for a continuation session
 
-- Everything through Item 8/12/1–5/7 is committed on `fix/adjustments`; Item 6 (H2 → PostgreSQL +
-  Flyway) is committed at `03e904a`. Item 9 (comment cleanup + ADR extraction) is done and
-  verified but **staged, not committed** — this session's own rule (never commit unprompted)
-  applies same as every other item.
+- Everything through Item 12 except Items 10/11 (optional, not started) is either committed on
+  `fix/adjustments` or staged awaiting commit — see the status table's Commit column for exactly
+  which. Item 13 (`CLAUDE.md` rewrite) is done and verified but **staged, not committed** — this
+  session's own rule (never commit unprompted) applies same as every other item.
 - The user has been committing manually after each item — this session never ran `git commit`
   itself, only proposed messages.
 - **Docker is now a real prerequisite**, for local dev (a `postgres:16` container — see README)
