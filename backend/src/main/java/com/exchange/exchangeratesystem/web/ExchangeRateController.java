@@ -1,31 +1,21 @@
 package com.exchange.exchangeratesystem.web;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import com.exchange.exchangeratesystem.currency.CurrencyCode;
 import com.exchange.exchangeratesystem.error.ErrorResponse;
 import com.exchange.exchangeratesystem.error.InvalidDateRangeException;
-import com.exchange.exchangeratesystem.error.RateNotAvailableException;
 import com.exchange.exchangeratesystem.error.UnknownCurrencyException;
 import com.exchange.exchangeratesystem.error.UpstreamFetchException;
-import com.exchange.exchangeratesystem.rate.ExchangeRate;
-import com.exchange.exchangeratesystem.rate.ExchangeRateRepository;
+import com.exchange.exchangeratesystem.rate.ExchangeRateQueryService;
 import com.exchange.exchangeratesystem.rate.FixerClientException;
+import com.exchange.exchangeratesystem.rate.HistoricalRateService;
 import com.exchange.exchangeratesystem.rate.RateIngestionService;
-import com.exchange.exchangeratesystem.rate.SpreadCalculationService;
 import com.exchange.exchangeratesystem.rate.dto.ExchangeRateResponse;
-import com.exchange.exchangeratesystem.rate.dto.HistoricalRatePoint;
 import com.exchange.exchangeratesystem.rate.dto.HistoryResponse;
 import com.exchange.exchangeratesystem.rate.dto.RefreshResponse;
-import com.exchange.exchangeratesystem.usage.CurrencyUsageRepository;
-import com.exchange.exchangeratesystem.usage.UsageTrackingService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -48,6 +38,12 @@ import org.springframework.web.bind.annotation.RestController;
  * {@code /api/exchange} — the spread-adjusted rate lookup (T027, User Story 1),
  * the historical range query (T027, User Story 2's raw-data half), and the
  * optional manual-refresh trigger (T028, FR-022). All three per contracts/exchange.md.
+ *
+ * Deliberately thin: parses/validates input, delegates to
+ * {@link ExchangeRateQueryService}/{@link HistoricalRateService}/
+ * {@link RateIngestionService}, and returns whatever they give back — every
+ * actual business rule (date resolution, series building, the same-currency
+ * short-circuit, usage tracking) lives in those services now, not here.
  */
 @RestController
 @RequestMapping("/api/exchange")
@@ -57,25 +53,19 @@ import org.springframework.web.bind.annotation.RestController;
                 + "ingestion refresh — contracts/exchange.md.")
 public class ExchangeRateController {
 
-    private final ExchangeRateRepository exchangeRateRepository;
-    private final CurrencyUsageRepository currencyUsageRepository;
     private final CurrencyCode currencyCode;
-    private final SpreadCalculationService spreadCalculationService;
-    private final UsageTrackingService usageTrackingService;
+    private final ExchangeRateQueryService exchangeRateQueryService;
+    private final HistoricalRateService historicalRateService;
     private final RateIngestionService rateIngestionService;
 
     public ExchangeRateController(
-            ExchangeRateRepository exchangeRateRepository,
-            CurrencyUsageRepository currencyUsageRepository,
             CurrencyCode currencyCode,
-            SpreadCalculationService spreadCalculationService,
-            UsageTrackingService usageTrackingService,
+            ExchangeRateQueryService exchangeRateQueryService,
+            HistoricalRateService historicalRateService,
             RateIngestionService rateIngestionService) {
-        this.exchangeRateRepository = exchangeRateRepository;
-        this.currencyUsageRepository = currencyUsageRepository;
         this.currencyCode = currencyCode;
-        this.spreadCalculationService = spreadCalculationService;
-        this.usageTrackingService = usageTrackingService;
+        this.exchangeRateQueryService = exchangeRateQueryService;
+        this.historicalRateService = historicalRateService;
         this.rateIngestionService = rateIngestionService;
     }
 
@@ -142,33 +132,7 @@ public class ExchangeRateController {
         validateCurrency(fromCode);
         validateCurrency(toCode);
 
-        BigDecimal adjustedRate;
-        LocalDate rateDate;
-
-        if (fromCode.equals(toCode)) {
-            // Same-currency pair: always exactly 1, regardless of whether this
-            // currency has any stored data at all (spec.md User Story 1,
-            // Acceptance Scenario 4 — confirmed design decision). No DB lookup.
-            adjustedRate = spreadCalculationService.calculate(
-                    toCode, fromCode, BigDecimal.ONE, BigDecimal.ONE);
-            rateDate = date != null ? date : LocalDate.now();
-        } else {
-            rateDate = date != null ? date : mostRecentCommonDate(fromCode, toCode);
-            ExchangeRate fromRate = findRate(fromCode, toCode, rateDate, fromCode);
-            ExchangeRate toRate = findRate(fromCode, toCode, rateDate, toCode);
-            adjustedRate = spreadCalculationService.calculate(
-                    toCode, fromCode, toRate.getRateToUsd(), fromRate.getRateToUsd());
-        }
-
-        // The usage increment must happen only after the rate has been
-        // successfully resolved (contracts/exchange.md) — everything above this
-        // line either returned via an exception or produced a real rate.
-        usageTrackingService.recordLookup(fromCode, toCode, LocalDate.now());
-
-        long fromQueryCount = currencyUsageRepository.findById(fromCode).orElseThrow().getQueryCount();
-        long toQueryCount = currencyUsageRepository.findById(toCode).orElseThrow().getQueryCount();
-
-        return new ExchangeRateResponse(fromCode, toCode, adjustedRate, rateDate, fromQueryCount, toQueryCount);
+        return exchangeRateQueryService.getRate(fromCode, toCode, date);
     }
 
     @Operation(
@@ -248,40 +212,7 @@ public class ExchangeRateController {
                     "startDate " + startDate + " is after endDate " + endDate);
         }
 
-        List<HistoricalRatePoint> points = new ArrayList<>();
-        List<LocalDate> missingDates = new ArrayList<>();
-
-        if (fromCode.equals(toCode)) {
-            // Same currency for every date in range: always exactly 1, no data
-            // needed at all — consistent with getExchangeRate's same-currency
-            // handling above.
-            for (LocalDate cursor = startDate; !cursor.isAfter(endDate); cursor = cursor.plusDays(1)) {
-                points.add(new HistoricalRatePoint(cursor, BigDecimal.ONE));
-            }
-        } else {
-            Map<LocalDate, BigDecimal> fromRates = ratesByDate(fromCode, startDate, endDate);
-            Map<LocalDate, BigDecimal> toRates = ratesByDate(toCode, startDate, endDate);
-
-            for (LocalDate cursor = startDate; !cursor.isAfter(endDate); cursor = cursor.plusDays(1)) {
-                BigDecimal fromRateToUsd = fromRates.get(cursor);
-                BigDecimal toRateToUsd = toRates.get(cursor);
-                if (fromRateToUsd != null && toRateToUsd != null) {
-                    BigDecimal adjustedRate = spreadCalculationService.calculate(
-                            toCode, fromCode, toRateToUsd, fromRateToUsd);
-                    points.add(new HistoricalRatePoint(cursor, adjustedRate));
-                } else {
-                    missingDates.add(cursor);
-                }
-            }
-
-            if (points.isEmpty()) {
-                throw new RateNotAvailableException(
-                        "No rate data available for " + fromCode + "/" + toCode + " between "
-                                + startDate + " and " + endDate);
-            }
-        }
-
-        return new HistoryResponse(fromCode, toCode, startDate, endDate, points, missingDates);
+        return historicalRateService.getHistory(fromCode, toCode, startDate, endDate);
     }
 
     @Operation(
@@ -322,43 +253,5 @@ public class ExchangeRateController {
         if (!currencyCode.isSupported(code)) {
             throw new UnknownCurrencyException("Unknown currency code: " + code);
         }
-    }
-
-    /**
-     * The most recent date on which both currencies actually have stored
-     * data — resolved as one query (findMostRecentCommonDate), not by
-     * comparing each currency's own single latest date against the other's.
-     * Comparing single latest dates can pick a date that only one of the
-     * two currencies has (e.g. EUR's latest is the 10th, PLN's latest is
-     * the 9th, but EUR has no data at all on the 9th) even when an actual
-     * earlier common date does exist.
-     */
-    private LocalDate mostRecentCommonDate(String fromCode, String toCode) {
-        return exchangeRateRepository
-                .findMostRecentCommonDate(fromCode, toCode)
-                .orElseThrow(
-                        () ->
-                                new RateNotAvailableException(
-                                        "No common rate date available for " + fromCode + "/" + toCode));
-    }
-
-    private ExchangeRate findRate(String fromCode, String toCode, LocalDate rateDate, String code) {
-        return exchangeRateRepository
-                .findByCurrencyCodeAndRateDate(code, rateDate)
-                .orElseThrow(
-                        () ->
-                                new RateNotAvailableException(
-                                        "No rate data available for " + fromCode + "/" + toCode + " on "
-                                                + rateDate));
-    }
-
-    private Map<LocalDate, BigDecimal> ratesByDate(String code, LocalDate startDate, LocalDate endDate) {
-        Map<LocalDate, BigDecimal> byDate = new HashMap<>();
-        for (ExchangeRate rate :
-                exchangeRateRepository.findByCurrencyCodeAndRateDateBetweenOrderByRateDateAsc(
-                        code, startDate, endDate)) {
-            byDate.put(rate.getRateDate(), rate.getRateToUsd());
-        }
-        return byDate;
     }
 }

@@ -22,144 +22,96 @@ import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 
-import com.exchange.exchangeratesystem.currency.CurrencySpread;
 import com.exchange.exchangeratesystem.error.InsightUnavailableException;
-import com.exchange.exchangeratesystem.rate.ExchangeRate;
-import com.exchange.exchangeratesystem.rate.ExchangeRateRepository;
-import com.exchange.exchangeratesystem.rate.SpreadCalculationService;
+import com.exchange.exchangeratesystem.rate.dto.HistoricalRatePoint;
 
 /**
- * T036: no Spring context — {@link ExchangeRateRepository} is a plain
- * Mockito mock (fixture rate rows), {@link SpreadCalculationService} is the
- * real implementation (so asserted rate values are the actual formula
- * output, not an arbitrary fixture), and the {@link ChatModel} underneath
- * {@link ChatClient} is a plain Mockito mock — {@code ChatClient.builder(mock)}
- * gives a real {@code ChatClient} wired to it, which is the standard way to
- * test {@code ChatClient} fluent-API usage without deep-stubbing its
- * interface directly.
+ * T036: no Spring context. The {@link ChatModel} underneath {@link ChatClient}
+ * is a plain Mockito mock — {@code ChatClient.builder(mock)} gives a real
+ * {@code ChatClient} wired to it, which is the standard way to test
+ * {@code ChatClient} fluent-API usage without deep-stubbing its interface
+ * directly. The series itself is supplied directly as a fixture — building
+ * it from stored rate data is {@code HistoricalRateService}'s job (and its
+ * own test's), not this service's; this test's job is purely "does the
+ * prompt faithfully reflect whatever series it's given."
  */
 class TrendInsightServiceTest {
-
-    private final ExchangeRateRepository exchangeRateRepository = mock(ExchangeRateRepository.class);
-    private final SpreadCalculationService spreadCalculationService =
-            new SpreadCalculationService(new CurrencySpread());
 
     @Test
     void promptContainsTheActualInjectedRateValuesForTheRequestedRange() {
         LocalDate day1 = LocalDate.of(2026, 3, 1);
         LocalDate day2 = LocalDate.of(2026, 3, 2);
-        BigDecimal eurDay1 = new BigDecimal("0.80");
-        BigDecimal eurDay2 = new BigDecimal("0.81");
-        BigDecimal plnDay1 = new BigDecimal("3.70");
-        BigDecimal plnDay2 = new BigDecimal("3.75");
-
-        when(exchangeRateRepository.findByCurrencyCodeAndRateDateBetweenOrderByRateDateAsc(
-                        "EUR", day1, day2))
-                .thenReturn(List.of(
-                        new ExchangeRate("EUR", eurDay1, day1), new ExchangeRate("EUR", eurDay2, day2)));
-        when(exchangeRateRepository.findByCurrencyCodeAndRateDateBetweenOrderByRateDateAsc(
-                        "PLN", day1, day2))
-                .thenReturn(List.of(
-                        new ExchangeRate("PLN", plnDay1, day1), new ExchangeRate("PLN", plnDay2, day2)));
-
-        // The real formula's own output — proves the prompt carries the actual
-        // computed series, not a fixture the test invented independently.
-        BigDecimal expectedDay1 = spreadCalculationService.calculate("PLN", "EUR", plnDay1, eurDay1);
-        BigDecimal expectedDay2 = spreadCalculationService.calculate("PLN", "EUR", plnDay2, eurDay2);
+        BigDecimal rateDay1 = new BigDecimal("4.4978125000");
+        BigDecimal rateDay2 = new BigDecimal("4.5555555556");
+        List<HistoricalRatePoint> series = List.of(
+                new HistoricalRatePoint(day1, rateDay1), new HistoricalRatePoint(day2, rateDay2));
 
         ChatModel chatModel = mock(ChatModel.class);
-        // ChatClient's internals unconditionally call getOptions().mutate() while
-        // building the request, even before chatModel.call(Prompt) is invoked — a
-        // bare mock's default null getOptions() NPEs there, which this service's
-        // catch (RuntimeException) would mask as a false-positive "model call
-        // failed". Stubbing a real ChatOptions keeps each test exercising exactly
-        // what it claims to.
-        when(chatModel.getOptions()).thenReturn(ChatOptions.builder().build());
-        when(chatModel.call(any(Prompt.class)))
-                .thenReturn(
-                        new ChatResponse(
-                                List.of(new Generation(new AssistantMessage("EUR/PLN rose slightly.")))));
-        TrendInsightService service = new TrendInsightService(
-                exchangeRateRepository, spreadCalculationService, ChatClient.builder(chatModel));
+        stubHealthyModel(chatModel, "EUR/PLN rose slightly.");
+        TrendInsightService service = new TrendInsightService(ChatClient.builder(chatModel));
 
-        service.generateInsight("EUR", "PLN", day1, day2);
+        service.generateInsight("EUR", "PLN", day1, day2, series);
 
-        ArgumentCaptor<Prompt> promptCaptor = ArgumentCaptor.forClass(Prompt.class);
-        verify(chatModel).call(promptCaptor.capture());
-        String userMessage = promptCaptor.getValue().getUserMessage().getText();
-
+        String userMessage = capturePromptUserMessage(chatModel);
         assertThat(userMessage)
                 .contains("EUR/PLN")
                 .contains(day1.toString())
                 .contains(day2.toString())
-                .contains(formatRate(expectedDay1))
-                .contains(formatRate(expectedDay2));
+                .contains(formatRate(rateDay1))
+                .contains(formatRate(rateDay2));
     }
 
     @Test
     void singleDayRangeSeriesContainsExactlyOnePointForTheModelToDescribe() {
         LocalDate day = LocalDate.of(2026, 3, 1);
-        BigDecimal eurRate = new BigDecimal("0.80");
-        BigDecimal plnRate = new BigDecimal("3.70");
-        when(exchangeRateRepository.findByCurrencyCodeAndRateDateBetweenOrderByRateDateAsc(
-                        "EUR", day, day))
-                .thenReturn(List.of(new ExchangeRate("EUR", eurRate, day)));
-        when(exchangeRateRepository.findByCurrencyCodeAndRateDateBetweenOrderByRateDateAsc(
-                        "PLN", day, day))
-                .thenReturn(List.of(new ExchangeRate("PLN", plnRate, day)));
-        BigDecimal expected = spreadCalculationService.calculate("PLN", "EUR", plnRate, eurRate);
+        BigDecimal rate = new BigDecimal("4.4978125000");
+        List<HistoricalRatePoint> series = List.of(new HistoricalRatePoint(day, rate));
 
         ChatModel chatModel = mock(ChatModel.class);
-        // ChatClient's internals unconditionally call getOptions().mutate() while
-        // building the request, even before chatModel.call(Prompt) is invoked — a
-        // bare mock's default null getOptions() NPEs there, which this service's
-        // catch (RuntimeException) would mask as a false-positive "model call
-        // failed". Stubbing a real ChatOptions keeps each test exercising exactly
-        // what it claims to.
-        when(chatModel.getOptions()).thenReturn(ChatOptions.builder().build());
-        when(chatModel.call(any(Prompt.class)))
-                .thenReturn(
-                        new ChatResponse(
-                                List.of(new Generation(new AssistantMessage("A single observation.")))));
-        TrendInsightService service = new TrendInsightService(
-                exchangeRateRepository, spreadCalculationService, ChatClient.builder(chatModel));
+        stubHealthyModel(chatModel, "A single observation.");
+        TrendInsightService service = new TrendInsightService(ChatClient.builder(chatModel));
 
-        service.generateInsight("EUR", "PLN", day, day);
+        service.generateInsight("EUR", "PLN", day, day, series);
 
-        ArgumentCaptor<Prompt> promptCaptor = ArgumentCaptor.forClass(Prompt.class);
-        verify(chatModel).call(promptCaptor.capture());
-        String userMessage = promptCaptor.getValue().getUserMessage().getText();
-
+        String userMessage = capturePromptUserMessage(chatModel);
         assertThat(userMessage)
                 .contains("Number of data points available: 1")
-                .contains(formatRate(expected));
+                .contains(formatRate(rate));
     }
 
     @Test
     void chatModelFailureIsTranslatedIntoInsightUnavailableExceptionNotAnUnhandledOne() {
         LocalDate day = LocalDate.of(2026, 3, 1);
-        when(exchangeRateRepository.findByCurrencyCodeAndRateDateBetweenOrderByRateDateAsc(
-                        "EUR", day, day))
-                .thenReturn(List.of(new ExchangeRate("EUR", new BigDecimal("0.80"), day)));
-        when(exchangeRateRepository.findByCurrencyCodeAndRateDateBetweenOrderByRateDateAsc(
-                        "PLN", day, day))
-                .thenReturn(List.of(new ExchangeRate("PLN", new BigDecimal("3.70"), day)));
+        List<HistoricalRatePoint> series =
+                List.of(new HistoricalRatePoint(day, new BigDecimal("4.4978125000")));
 
         ChatModel chatModel = mock(ChatModel.class);
-        // ChatClient's internals unconditionally call getOptions().mutate() while
-        // building the request, even before chatModel.call(Prompt) is invoked — a
-        // bare mock's default null getOptions() NPEs there, which this service's
-        // catch (RuntimeException) would mask as a false-positive "model call
-        // failed". Stubbing a real ChatOptions keeps each test exercising exactly
-        // what it claims to.
+        when(chatModel.getOptions()).thenReturn(ChatOptions.builder().build());
+        when(chatModel.call(any(Prompt.class))).thenThrow(new RuntimeException("connection refused"));
+        TrendInsightService service = new TrendInsightService(ChatClient.builder(chatModel));
+
+        assertThatThrownBy(() -> service.generateInsight("EUR", "PLN", day, day, series))
+                .isInstanceOf(InsightUnavailableException.class);
+    }
+
+    /**
+     * ChatClient's internals unconditionally call getOptions().mutate() while
+     * building the request, even before chatModel.call(Prompt) is invoked — a
+     * bare mock's default null getOptions() NPEs there, which this service's
+     * catch (RuntimeException) would mask as a false-positive "model call
+     * failed". Stubbing a real ChatOptions keeps each test exercising exactly
+     * what it claims to.
+     */
+    private static void stubHealthyModel(ChatModel chatModel, String reply) {
         when(chatModel.getOptions()).thenReturn(ChatOptions.builder().build());
         when(chatModel.call(any(Prompt.class)))
-                .thenThrow(new RuntimeException("connection refused"));
-        TrendInsightService service = new TrendInsightService(
-                exchangeRateRepository, spreadCalculationService, ChatClient.builder(chatModel));
+                .thenReturn(new ChatResponse(List.of(new Generation(new AssistantMessage(reply)))));
+    }
 
-        assertThatThrownBy(() -> service.generateInsight("EUR", "PLN", day, day))
-                .isInstanceOf(InsightUnavailableException.class);
+    private static String capturePromptUserMessage(ChatModel chatModel) {
+        ArgumentCaptor<Prompt> promptCaptor = ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel).call(promptCaptor.capture());
+        return promptCaptor.getValue().getUserMessage().getText();
     }
 
     private static String formatRate(BigDecimal rate) {

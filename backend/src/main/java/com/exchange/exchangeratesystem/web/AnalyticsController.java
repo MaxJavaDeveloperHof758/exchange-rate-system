@@ -1,10 +1,7 @@
 package com.exchange.exchangeratesystem.web;
 
-import java.util.List;
-
-import com.exchange.exchangeratesystem.usage.CurrencyUsageRepository;
+import com.exchange.exchangeratesystem.usage.AnalyticsService;
 import com.exchange.exchangeratesystem.usage.dto.AnalyticsResponse;
-import com.exchange.exchangeratesystem.usage.dto.CurrencyUsageEntry;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -18,9 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * {@code /api/analytics} — usage statistics across all currencies ever queried
- * (T029, User Story 3), per contracts/analytics.md. Read-only: never touches
- * {@code currency_usage} counters, so viewing analytics never itself counts as
- * a lookup.
+ * (T029, User Story 3), per contracts/analytics.md. Delegates entirely to
+ * {@link AnalyticsService}; read-only, so viewing analytics never itself
+ * counts as a lookup.
  */
 @RestController
 @RequestMapping("/api/analytics")
@@ -30,10 +27,10 @@ import org.springframework.web.bind.annotation.RestController;
                 + "contracts/analytics.md.")
 public class AnalyticsController {
 
-    private final CurrencyUsageRepository currencyUsageRepository;
+    private final AnalyticsService analyticsService;
 
-    public AnalyticsController(CurrencyUsageRepository currencyUsageRepository) {
-        this.currencyUsageRepository = currencyUsageRepository;
+    public AnalyticsController(AnalyticsService analyticsService) {
+        this.analyticsService = analyticsService;
     }
 
     @Operation(
@@ -48,12 +45,6 @@ public class AnalyticsController {
             content = @Content(schema = @Schema(implementation = AnalyticsResponse.class)))
     @GetMapping
     public AnalyticsResponse getAnalytics() {
-        List<CurrencyUsageEntry> topCurrencies = currencyUsageRepository
-                .findAllByOrderByQueryCountDesc()
-                .stream()
-                .map(usage -> new CurrencyUsageEntry(
-                        usage.getCurrencyCode(), usage.getQueryCount(), usage.getLastQueriedDate()))
-                .toList();
-        return new AnalyticsResponse(topCurrencies);
+        return analyticsService.getAnalytics();
     }
 }

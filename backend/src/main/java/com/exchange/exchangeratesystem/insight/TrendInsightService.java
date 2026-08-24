@@ -3,27 +3,26 @@ package com.exchange.exchangeratesystem.insight;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
 import com.exchange.exchangeratesystem.error.InsightUnavailableException;
-import com.exchange.exchangeratesystem.rate.ExchangeRate;
-import com.exchange.exchangeratesystem.rate.ExchangeRateRepository;
-import com.exchange.exchangeratesystem.rate.SpreadCalculationService;
+import com.exchange.exchangeratesystem.rate.dto.HistoricalRatePoint;
 
 /**
  * T035: generates a short, grounded natural-language commentary on a currency
  * pair's rate movement over a date range, per contracts/insight.md and
- * constitution Principle X. Builds the exact same spread-adjusted
- * {@code (date, rate)} series {@code ExchangeRateController#getHistory} would
- * return — via {@link ExchangeRateRepository} directly, not by calling the
- * controller — then serializes that real series into the prompt so the model
- * is responding to actual injected numbers, never a template.
+ * constitution Principle X. Takes the exact same spread-adjusted
+ * {@code (date, rate)} series {@code GET /api/exchange/history} would return
+ * as a parameter — built once by {@code HistoricalRateService} and passed in
+ * by {@code InsightController} — rather than building its own copy of that
+ * series independently; the two used to duplicate the identical
+ * series-construction logic (same-currency short-circuit, missing-date
+ * skipping, spread calculation), a genuine risk of the two silently
+ * diverging on a future change to either. This service's only job now is
+ * turning an already-computed series into a grounded prompt.
  */
 @Service
 public class TrendInsightService {
@@ -53,21 +52,21 @@ public class TrendInsightService {
             a concise, coherent summary of the overall movement instead.
             """;
 
-    private final ExchangeRateRepository exchangeRateRepository;
-    private final SpreadCalculationService spreadCalculationService;
     private final ChatClient chatClient;
 
-    public TrendInsightService(
-            ExchangeRateRepository exchangeRateRepository,
-            SpreadCalculationService spreadCalculationService,
-            ChatClient.Builder chatClientBuilder) {
-        this.exchangeRateRepository = exchangeRateRepository;
-        this.spreadCalculationService = spreadCalculationService;
+    public TrendInsightService(ChatClient.Builder chatClientBuilder) {
         this.chatClient = chatClientBuilder.build();
     }
 
-    public String generateInsight(String from, String to, LocalDate fromDate, LocalDate toDate) {
-        List<RatePoint> series = buildSeries(from, to, fromDate, toDate);
+    /**
+     * @param series the already-computed spread-adjusted series for this
+     *     exact {@code from}/{@code to}/{@code fromDate}/{@code toDate} —
+     *     the caller is responsible for it being non-empty and for it
+     *     actually corresponding to this range (this service does not
+     *     re-verify either).
+     */
+    public String generateInsight(
+            String from, String to, LocalDate fromDate, LocalDate toDate, List<HistoricalRatePoint> series) {
         String userMessage = buildUserMessage(from, to, fromDate, toDate, series);
 
         try {
@@ -77,50 +76,12 @@ public class TrendInsightService {
         }
     }
 
-    /**
-     * Mirrors {@code ExchangeRateController#getHistory}'s series construction
-     * exactly (same-currency short-circuit to a constant 1, missing dates
-     * silently skipped rather than failing) so the model is grounded in
-     * precisely what a client would see via {@code /api/exchange/history} for
-     * this same range.
-     */
-    private List<RatePoint> buildSeries(String from, String to, LocalDate fromDate, LocalDate toDate) {
-        List<RatePoint> points = new ArrayList<>();
-
-        if (from.equalsIgnoreCase(to)) {
-            for (LocalDate cursor = fromDate; !cursor.isAfter(toDate); cursor = cursor.plusDays(1)) {
-                points.add(new RatePoint(cursor, BigDecimal.ONE));
-            }
-            return points;
-        }
-
-        Map<LocalDate, BigDecimal> fromRates = ratesByDate(from, fromDate, toDate);
-        Map<LocalDate, BigDecimal> toRates = ratesByDate(to, fromDate, toDate);
-
-        for (LocalDate cursor = fromDate; !cursor.isAfter(toDate); cursor = cursor.plusDays(1)) {
-            BigDecimal fromRateToUsd = fromRates.get(cursor);
-            BigDecimal toRateToUsd = toRates.get(cursor);
-            if (fromRateToUsd != null && toRateToUsd != null) {
-                BigDecimal adjustedRate =
-                        spreadCalculationService.calculate(to, from, toRateToUsd, fromRateToUsd);
-                points.add(new RatePoint(cursor, adjustedRate));
-            }
-        }
-        return points;
-    }
-
-    private Map<LocalDate, BigDecimal> ratesByDate(String code, LocalDate startDate, LocalDate endDate) {
-        Map<LocalDate, BigDecimal> byDate = new HashMap<>();
-        for (ExchangeRate rate :
-                exchangeRateRepository.findByCurrencyCodeAndRateDateBetweenOrderByRateDateAsc(
-                        code, startDate, endDate)) {
-            byDate.put(rate.getRateDate(), rate.getRateToUsd());
-        }
-        return byDate;
-    }
-
     private String buildUserMessage(
-            String from, String to, LocalDate fromDate, LocalDate toDate, List<RatePoint> series) {
+            String from,
+            String to,
+            LocalDate fromDate,
+            LocalDate toDate,
+            List<HistoricalRatePoint> series) {
         StringBuilder message = new StringBuilder();
         message
                 .append("Currency pair: ").append(from).append('/').append(to).append('\n')
@@ -129,27 +90,24 @@ public class TrendInsightService {
                 .append("Number of data points available: ").append(series.size()).append('\n');
 
         if (!series.isEmpty()) {
-            RatePoint first = series.get(0);
-            RatePoint last = series.get(series.size() - 1);
+            HistoricalRatePoint first = series.get(0);
+            HistoricalRatePoint last = series.get(series.size() - 1);
             message
                     .append("First available date: ").append(first.date()).append(" = ")
-                    .append(formatRate(first.rate())).append('\n')
+                    .append(formatRate(first.exchange())).append('\n')
                     .append("Last available date: ").append(last.date()).append(" = ")
-                    .append(formatRate(last.rate())).append('\n');
+                    .append(formatRate(last.exchange())).append('\n');
         }
 
         message.append("Full series (date = exchange rate):\n");
-        for (RatePoint point : series) {
-            message.append(point.date()).append(" = ").append(formatRate(point.rate())).append('\n');
+        for (HistoricalRatePoint point : series) {
+            message.append(point.date()).append(" = ").append(formatRate(point.exchange())).append('\n');
         }
         return message.toString();
     }
 
-    /** Rounds only for prompt legibility/token economy — every actual calculation above stays full-precision BigDecimal. */
+    /** Rounds only for prompt legibility/token economy — every actual calculation upstream stays full-precision BigDecimal. */
     private static String formatRate(BigDecimal rate) {
         return rate.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP).toPlainString();
-    }
-
-    private record RatePoint(LocalDate date, BigDecimal rate) {
     }
 }
