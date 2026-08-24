@@ -6,26 +6,33 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Fetches the latest rates from Fixer.io and upserts every returned currency
  * for that one validity date, per research.md Decision 3 and NFR-004.
  *
- * The whole batch of upserts for one ingestion run is wrapped in a single
- * transaction: if any one upsert fails partway through, every upsert in this
- * run rolls back together — this run never leaves a partial set of currencies
- * updated for a date while others are missing. The Fixer.io call itself
- * happens inside this same {@code @Transactional} method, but before any
- * repository call — Spring's transaction manager acquires the database
- * connection lazily on first actual use, so no connection is held open for the
- * duration of the outbound HTTP call.
+ * The Fixer.io call runs with no transaction open at all — not even one
+ * whose connection is merely acquired lazily. Only the upsert batch
+ * (persistRates) opens one, via {@code TransactionTemplate} rather than a
+ * same-class {@code @Transactional} method: Spring's proxy-based AOP does
+ * not intercept a method calling another method on {@code this} within the
+ * same instance, so a same-class {@code @Transactional} split here would
+ * compile but silently run {@code persistRates} with no transaction at all
+ * — defeating the "every upsert in this run rolls back together" guarantee
+ * entirely, and doing so without any error to reveal it. See
+ * {@code UsageTrackingService} for the same reasoning already applied there.
  *
- * If the Fixer.io fetch itself fails, no repository call has happened yet, so
- * all existing {@code ExchangeRate} rows are left untouched by construction —
- * the failure is logged here (in addition to FixerClient's own lower-level
- * log) and re-thrown so callers (the scheduler, T017; the manual-refresh
- * endpoint, T028) know the run did not succeed.
+ * The whole batch of upserts for one ingestion run still rolls back
+ * together if any one upsert fails partway through — this run never leaves
+ * a partial set of currencies updated for a date while others are missing.
+ *
+ * If the Fixer.io fetch itself fails, no repository call has happened yet,
+ * so all existing {@code ExchangeRate} rows are left untouched by
+ * construction — the failure is logged here (in addition to FixerClient's
+ * own lower-level log) and re-thrown so callers (the scheduler, T017; the
+ * manual-refresh endpoint, T028) know the run did not succeed.
  */
 @Service
 public class RateIngestionService {
@@ -34,14 +41,17 @@ public class RateIngestionService {
 
     private final FixerClient fixerClient;
     private final ExchangeRateRepository exchangeRateRepository;
+    private final TransactionTemplate transactionTemplate;
 
     public RateIngestionService(
-            FixerClient fixerClient, ExchangeRateRepository exchangeRateRepository) {
+            FixerClient fixerClient,
+            ExchangeRateRepository exchangeRateRepository,
+            PlatformTransactionManager transactionManager) {
         this.fixerClient = fixerClient;
         this.exchangeRateRepository = exchangeRateRepository;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
-    @Transactional
     public void ingestLatestRates() {
         FixerRatesResult result;
         try {
@@ -54,13 +64,17 @@ public class RateIngestionService {
             throw e;
         }
 
-        for (Map.Entry<String, BigDecimal> entry : result.rates().entrySet()) {
-            exchangeRateRepository.upsert(entry.getKey(), entry.getValue(), result.date());
-        }
+        transactionTemplate.executeWithoutResult(status -> persistRates(result));
 
         log.info(
                 "Rate ingestion succeeded: upserted {} currencies for {}",
                 result.rates().size(),
                 result.date());
+    }
+
+    private void persistRates(FixerRatesResult result) {
+        for (Map.Entry<String, BigDecimal> entry : result.rates().entrySet()) {
+            exchangeRateRepository.upsert(entry.getKey(), entry.getValue(), result.date());
+        }
     }
 }
