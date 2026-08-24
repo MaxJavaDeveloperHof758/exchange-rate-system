@@ -5,20 +5,24 @@
       <thead>
         <tr>
           <th scope="col">Date</th>
-          <th scope="col">Exchange rate</th>
+          <th scope="col">{{ h.from }} → USD</th>
+          <th scope="col">{{ h.to }} → USD</th>
+          <th scope="col">{{ h.from }}/{{ h.to }} rate</th>
         </tr>
       </thead>
       <tbody>
         @for (row of rows(); track row.date) {
           <tr [class.missing]="row.missing">
             <td>{{ row.date }}</td>
-            <td>
-              @if (row.missing) {
+            @if (row.missing) {
+              <td colspan="3">
                 <span class="missing-indicator" role="status">No data available</span>
-              } @else {
-                {{ row.exchange | number: '1.6-6' }}
-              }
-            </td>
+              </td>
+            } @else {
+              <td>{{ row.fromRateToUsd === null ? '—' : (row.fromRateToUsd | number: '1.6-6') }}</td>
+              <td>{{ row.toRateToUsd === null ? '—' : (row.toRateToUsd | number: '1.6-6') }}</td>
+              <td>{{ row.adjustedRate | number: '1.6-6' }}</td>
+            }
           </tr>
         }
       </tbody>

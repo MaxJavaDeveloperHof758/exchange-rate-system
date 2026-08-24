@@ -94,14 +94,14 @@ public class TrendInsightService {
             HistoricalRatePoint last = series.get(series.size() - 1);
             message
                     .append("First available date: ").append(first.date()).append(" = ")
-                    .append(formatRate(first.exchange())).append('\n')
+                    .append(formatRate(first.adjustedRate())).append('\n')
                     .append("Last available date: ").append(last.date()).append(" = ")
-                    .append(formatRate(last.exchange())).append('\n');
+                    .append(formatRate(last.adjustedRate())).append('\n');
         }
 
         message.append("Full series (date = exchange rate):\n");
         for (HistoricalRatePoint point : series) {
-            message.append(point.date()).append(" = ").append(formatRate(point.exchange())).append('\n');
+            message.append(point.date()).append(" = ").append(formatRate(point.adjustedRate())).append('\n');
         }
         return message.toString();
     }

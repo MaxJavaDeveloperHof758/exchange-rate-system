@@ -45,7 +45,9 @@ export class HistoricalTrendComponent {
 
   protected readonly chartPoints = computed<RatePoint[]>(() => {
     const history = this.historyResponse();
-    return history ? history.points.map((point) => ({ date: point.date, rate: point.exchange })) : [];
+    return history
+      ? history.points.map((point) => ({ date: point.date, rate: point.adjustedRate }))
+      : [];
   });
 
   protected readonly chartTitle = computed(() => {

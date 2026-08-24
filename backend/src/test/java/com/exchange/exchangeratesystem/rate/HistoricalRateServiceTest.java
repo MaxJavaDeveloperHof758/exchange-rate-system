@@ -48,8 +48,14 @@ class HistoricalRateServiceTest {
 
         assertThat(points).hasSize(3);
         assertThat(points)
-                .extracting(HistoricalRatePoint::exchange)
+                .extracting(HistoricalRatePoint::adjustedRate)
                 .allSatisfy(rate -> assertThat(rate).isEqualByComparingTo(BigDecimal.ONE));
+        assertThat(points)
+                .as("no DB lookup is performed for a same-currency pair, so there is no raw rate to report")
+                .allSatisfy(point -> {
+                    assertThat(point.fromRateToUsd()).isNull();
+                    assertThat(point.toRateToUsd()).isNull();
+                });
     }
 
     @Test
@@ -82,6 +88,28 @@ class HistoricalRateServiceTest {
                 .extracting(HistoricalRatePoint::date)
                 .containsExactly(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 3));
         assertThat(response.missingDates()).containsExactly(LocalDate.of(2026, 3, 2));
+    }
+
+    @Test
+    void computeSeriesReportsEachCurrencysOwnRawStoredRateAlongsideTheAdjustedPairRate() {
+        LocalDate day = LocalDate.of(2026, 3, 15);
+        BigDecimal eurRate = new BigDecimal("0.80");
+        BigDecimal plnRate = new BigDecimal("3.70");
+        exchangeRateRepository.upsert("EUR", eurRate, day);
+        exchangeRateRepository.upsert("PLN", plnRate, day);
+
+        List<HistoricalRatePoint> points = service.computeSeries("EUR", "PLN", day, day);
+
+        assertThat(points).hasSize(1);
+        HistoricalRatePoint point = points.get(0);
+        // FR-014: the raw rates actually stored for each currency, not just
+        // the derived pair rate, must be reported.
+        assertThat(point.fromRateToUsd()).isEqualByComparingTo(eurRate);
+        assertThat(point.toRateToUsd()).isEqualByComparingTo(plnRate);
+        assertThat(point.adjustedRate())
+                .isEqualByComparingTo(
+                        new SpreadCalculationService(new CurrencySpread())
+                                .calculate("PLN", "EUR", plnRate, eurRate));
     }
 
     @Test

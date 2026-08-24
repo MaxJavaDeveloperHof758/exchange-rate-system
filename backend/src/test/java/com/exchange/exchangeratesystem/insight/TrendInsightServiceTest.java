@@ -44,7 +44,8 @@ class TrendInsightServiceTest {
         BigDecimal rateDay1 = new BigDecimal("4.4978125000");
         BigDecimal rateDay2 = new BigDecimal("4.5555555556");
         List<HistoricalRatePoint> series = List.of(
-                new HistoricalRatePoint(day1, rateDay1), new HistoricalRatePoint(day2, rateDay2));
+                new HistoricalRatePoint(day1, null, null, rateDay1),
+                new HistoricalRatePoint(day2, null, null, rateDay2));
 
         ChatModel chatModel = mock(ChatModel.class);
         stubHealthyModel(chatModel, "EUR/PLN rose slightly.");
@@ -65,7 +66,7 @@ class TrendInsightServiceTest {
     void singleDayRangeSeriesContainsExactlyOnePointForTheModelToDescribe() {
         LocalDate day = LocalDate.of(2026, 3, 1);
         BigDecimal rate = new BigDecimal("4.4978125000");
-        List<HistoricalRatePoint> series = List.of(new HistoricalRatePoint(day, rate));
+        List<HistoricalRatePoint> series = List.of(new HistoricalRatePoint(day, null, null, rate));
 
         ChatModel chatModel = mock(ChatModel.class);
         stubHealthyModel(chatModel, "A single observation.");
@@ -83,7 +84,7 @@ class TrendInsightServiceTest {
     void chatModelFailureIsTranslatedIntoInsightUnavailableExceptionNotAnUnhandledOne() {
         LocalDate day = LocalDate.of(2026, 3, 1);
         List<HistoricalRatePoint> series =
-                List.of(new HistoricalRatePoint(day, new BigDecimal("4.4978125000")));
+                List.of(new HistoricalRatePoint(day, null, null, new BigDecimal("4.4978125000")));
 
         ChatModel chatModel = mock(ChatModel.class);
         when(chatModel.getOptions()).thenReturn(ChatOptions.builder().build());

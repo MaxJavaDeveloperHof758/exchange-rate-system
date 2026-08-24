@@ -4,7 +4,9 @@ import { HistoryResponse } from '../../core/models/history.model';
 
 interface RateTableRow {
   date: string;
-  exchange: number | null;
+  fromRateToUsd: number | null;
+  toRateToUsd: number | null;
+  adjustedRate: number | null;
   missing: boolean;
 }
 
@@ -13,7 +15,9 @@ interface RateTableRow {
  * `missingDates` as visibly distinct rows rather than silently omitting
  * them — per contracts/exchange.md and spec.md User Story 2, Acceptance
  * Scenario 5 ("clearly indicate which parts of the requested range are
- * missing, rather than ... fabricating missing points").
+ * missing, rather than ... fabricating missing points"). Shows each
+ * currency's own raw rate-to-USD alongside the derived pair rate (FR-014:
+ * "the raw rates that are actually stored," not just the computed value).
  */
 @Component({
   selector: 'app-rate-table',
@@ -30,13 +34,18 @@ export class RateTableComponent {
       return [];
     }
 
-    const exchangeByDate = new Map(history.points.map((point) => [point.date, point.exchange]));
-    const allDates = [...exchangeByDate.keys(), ...history.missingDates].sort();
+    const pointByDate = new Map(history.points.map((point) => [point.date, point]));
+    const allDates = [...pointByDate.keys(), ...history.missingDates].sort();
 
-    return allDates.map((date) => ({
-      date,
-      exchange: exchangeByDate.get(date) ?? null,
-      missing: !exchangeByDate.has(date),
-    }));
+    return allDates.map((date) => {
+      const point = pointByDate.get(date);
+      return {
+        date,
+        fromRateToUsd: point?.fromRateToUsd ?? null,
+        toRateToUsd: point?.toRateToUsd ?? null,
+        adjustedRate: point?.adjustedRate ?? null,
+        missing: !point,
+      };
+    });
   });
 }

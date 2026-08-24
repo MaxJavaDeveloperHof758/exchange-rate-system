@@ -71,8 +71,8 @@ chart data source).
   "startDate": "2024-03-01",
   "endDate": "2024-03-15",
   "points": [
-    { "date": "2024-03-01", "exchange": 4.41 },
-    { "date": "2024-03-02", "exchange": 4.42 }
+    { "date": "2024-03-01", "fromRateToUsd": 0.80, "toRateToUsd": 3.70, "adjustedRate": 4.4978125 },
+    { "date": "2024-03-02", "fromRateToUsd": 0.81, "toRateToUsd": 3.72, "adjustedRate": 4.4590123457 }
   ],
   "missingDates": ["2024-03-03"]
 }
@@ -82,6 +82,12 @@ chart data source).
 pair; `missingDates` explicitly lists any date within `[startDate, endDate]` that had no usable
 stored data for one or both currencies (spec.md User Story 2, Acceptance Scenario 5) — the
 response is never a hard failure just because part of the range is incomplete.
+
+`fromRateToUsd`/`toRateToUsd` are each currency's own raw stored rate-to-USD for that date
+(FR-014: "the raw rates that are actually stored," not just the derived pair rate) — `null` for
+a same-currency pair, whose `adjustedRate` is always exactly `1` with no database lookup at all.
+`adjustedRate` is the spread-adjusted pair rate — the field this endpoint originally called
+`exchange` before both raw rates were added alongside it.
 
 **Errors**:
 

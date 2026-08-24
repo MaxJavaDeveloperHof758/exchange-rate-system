@@ -57,7 +57,7 @@ public class HistoricalRateService {
 
         if (fromCode.equalsIgnoreCase(toCode)) {
             for (LocalDate cursor = startDate; !cursor.isAfter(endDate); cursor = cursor.plusDays(1)) {
-                points.add(new HistoricalRatePoint(cursor, BigDecimal.ONE));
+                points.add(new HistoricalRatePoint(cursor, null, null, BigDecimal.ONE));
             }
             return points;
         }
@@ -71,7 +71,7 @@ public class HistoricalRateService {
             if (fromRateToUsd != null && toRateToUsd != null) {
                 BigDecimal adjustedRate = spreadCalculationService.calculate(
                         toCode, fromCode, toRateToUsd, fromRateToUsd);
-                points.add(new HistoricalRatePoint(cursor, adjustedRate));
+                points.add(new HistoricalRatePoint(cursor, fromRateToUsd, toRateToUsd, adjustedRate));
             }
         }
         return points;
